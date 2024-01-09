@@ -1,0 +1,40 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C++: g++ compile",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-std=c++2a",
+				"-march=native",
+				"-g",
+				"${file}",
+				"-o",
+				"${fileDirname}/${fileBasenameNoExtension}"
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compilador: /usr/bin/g++"
+		},
+		{
+			"type": "shell",
+			"label": "C++: run",
+			"command": "${fileDirname}/${fileBasenameNoExtension}",
+			"args": [
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"dependsOn": "C++: g++ compile",
+			"group": "build",
+			"detail": "run output"
+		}
+	]
+}
