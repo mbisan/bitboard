@@ -10,12 +10,12 @@
 				"-std=c++2a",
 				"-march=native",
 				"-g",
-				"${file}",
+				"/home/martin/bitboard/bitboard.cpp",
 				"-o",
-				"${fileDirname}/${fileBasenameNoExtension}"
+				"/home/martin/bitboard/bitboard"
 			],
 			"options": {
-				"cwd": "${fileDirname}"
+				"cwd": "/home/martin/bitboard/"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -26,11 +26,11 @@
 		{
 			"type": "shell",
 			"label": "C++: run",
-			"command": "${fileDirname}/${fileBasenameNoExtension}",
+			"command": "/home/martin/bitboard/bitboard",
 			"args": [
 			],
 			"options": {
-				"cwd": "${fileDirname}"
+				"cwd": "/home/martin/bitboard/"
 			},
 			"dependsOn": "C++: g++ compile",
 			"group": "build",

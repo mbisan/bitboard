@@ -1,29 +1,33 @@
 #include "display.cpp"
 
 Squares occupied(const Pieces &pieces) {
-    return (pieces.pawns|pieces.rooks|pieces.bishops|pieces.knights|pieces.queens|positionToBit[pieces.king]);
+    return (pieces.pawns|pieces.rooks|pieces.bishops|pieces.knights|pieces.queens|pieces.king);
 }
 
 Squares Seen(const Pieces &selfPieces, const Pieces &enemyPieces, bool isWhite) {
 
     Squares enemySquares = occupied(enemyPieces);
     Squares selfSquares = occupied(selfPieces);
-    Squares occupiedSquares = enemySquares & selfSquares;
+    Squares occupiedSquares = enemySquares | selfSquares;
 
     Squares enemySeen = 0;
 
     BitLoop(enemyPieces.rooks | enemyPieces.queens) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = rookMoves[pieceIndex] & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
-            enemySeen |= PinBetween[bitFromSquare(temp)][pieceIndex];
+        Squares rookReachable = rookMoves[pieceIndex];
+        for(uint64_t temp2 = rookReachable & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
+            rookReachable &= attacking[pieceIndex][bitFromSquare(temp2)];
         }
+        enemySeen |= rookReachable;
     }
 
     BitLoop(enemyPieces.bishops | enemyPieces.queens) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = bishopMoves[pieceIndex] & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
-            enemySeen |= PinBetween[bitFromSquare(temp)][pieceIndex];
+        Squares bishopReachable = bishopMoves[pieceIndex];
+        for(uint64_t temp2 = bishopReachable & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
+            bishopReachable &= attacking[pieceIndex][bitFromSquare(temp2)];
         }
+        enemySeen |= bishopReachable;
     }
 
     BitLoop(enemyPieces.knights) {
@@ -242,21 +246,16 @@ std::vector<Board> generateMoves(const Board board) {
 
 int main(void) {
 
-    BitLoop(0b100100110101ULL) {
-        std::cout << (int) bitFromSquare(temp) << ", ";
-    } std::cout << std::endl;
+    // Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
+    Board b = positionToBoard("RNB1KBNR/PPPPPPPP/4Q3/8/8/8/pppppppp/rnbqkbnr/-/W");
 
-    std::string test = "hi";
+    std::cout << boardToStr(b) << std::endl;
 
-    Board b = positionToBoard("RNBQKBNRPPPPPPPP8888pppppppprnbqkbnr-W");
+    display_int64(Seen(b.whitePieces, b.blackPieces, true));
 
-    printBoard(b);
+    isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
+    std::cout << (int) r.checkCount << std::endl;
+    display_int64(r.pinmaskHV);
 
-    for (auto c: test) {
-        std::cout << c << std::endl;
-    }
-
-    Squares a;
-    std::cout << "Hi" << std::endl;
     return 0;
 }

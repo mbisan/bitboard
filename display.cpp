@@ -1,5 +1,21 @@
 #include "base.cpp"
 
+void display_int64(Squares position) {
+    Squares copy = position;
+    for (int row = 7; row >=0; --row) {
+        for (int col = 0; col < 8; ++col) {
+            int shift = row*8+col;
+            if ((position >> shift) & 1) {
+                std::cout << "x";
+            } else {
+                std::cout << "0";
+            }
+        }
+        std::cout << std::endl;  // Move to the next line after each row
+    }
+    std::cout << std::endl;
+}
+
 Board positionToBoard(std::string position) {
     Board r; r.isWhite = false;
     int i=0;
@@ -83,17 +99,18 @@ Board positionToBoard(std::string position) {
 }
 
 std::string cInSetBits(uint64_t number, std::string c) {
+    uint64_t n = number;
     std::string res = "";
-    for (; number; number=number>>1) {
-        if (number&1ULL) res += c;
+    for (int i=0; i<64; i++) {
+        if (n&1ULL) res += c;
         else res += " ";
+        n=n>>1;
     }
     return res;
 }
 
-void printBoard(const Board &board) {
+std::string boardToStr(const Board &board) {
     auto wking = cInSetBits(board.whitePieces.king, "K");
-    std::cout << wking;
     auto wqueen = cInSetBits(board.whitePieces.queens, "Q");
     auto wrook = cInSetBits(board.whitePieces.rooks, "R");
     auto wbishop = cInSetBits(board.whitePieces.bishops, "B");
@@ -107,23 +124,24 @@ void printBoard(const Board &board) {
     auto bknight = cInSetBits(board.blackPieces.knights, "n");
     auto bpawn = cInSetBits(board.blackPieces.pawns, "p");
 
+    char out[64 + 8];
     for (int i=0; i<8; i++) {
         for (int j=0; j<8; j++) {
-            if (wking[8*i+j] != ' ') std::cout << wking[8*i+j]; continue;
-            if (wqueen[8*i+j] != ' ') std::cout << wqueen[8*i+j]; continue;
-            if (wrook[8*i+j] != ' ') std::cout << wrook[8*i+j]; continue;
-            if (wbishop[8*i+j] != ' ') std::cout << wbishop[8*i+j]; continue;
-            if (wknight[8*i+j] != ' ') std::cout << wknight[8*i+j]; continue;
-            if (wpawn[8*i+j] != ' ') std::cout << wpawn[8*i+j]; continue;
-            if (bking[8*i+j] != ' ') std::cout << bking[8*i+j]; continue;
-            if (bqueen[8*i+j] != ' ') std::cout << bqueen[8*i+j]; continue;
-            if (brook[8*i+j] != ' ') std::cout << brook[8*i+j]; continue;
-            if (bbishop[8*i+j] != ' ') std::cout << bbishop[8*i+j]; continue;
-            if (bknight[8*i+j] != ' ') std::cout << bknight[8*i+j]; continue;
-            if (bpawn[8*i+j] != ' ') std::cout << bpawn[8*i+j]; continue;
-            std::cout << " ";
+            if (wking[8*(7-i)+j] != ' ') {out[9*i+j] = wking[8*(7-i)+j]; continue;}
+            if (wqueen[8*(7-i)+j] != ' ') {out[9*i+j] = wqueen[8*(7-i)+j]; continue;}
+            if (wrook[8*(7-i)+j] != ' ') {out[9*i+j] = wrook[8*(7-i)+j]; continue;}
+            if (wbishop[8*(7-i)+j] != ' '){ out[9*i+j] = wbishop[8*(7-i)+j]; continue;}
+            if (wknight[8*(7-i)+j] != ' '){ out[9*i+j] = wknight[8*(7-i)+j]; continue;}
+            if (wpawn[8*(7-i)+j] != ' ') {out[9*i+j] = wpawn[8*(7-i)+j]; continue;}
+            if (bking[8*(7-i)+j] != ' ') {out[9*i+j] = bking[8*(7-i)+j]; continue;}
+            if (bqueen[8*(7-i)+j] != ' ') {out[9*i+j] = bqueen[8*(7-i)+j]; continue;}
+            if (brook[8*(7-i)+j] != ' ') {out[9*i+j] = brook[8*(7-i)+j]; continue;}
+            if (bbishop[8*(7-i)+j] != ' ') {out[9*i+j] = bbishop[8*(7-i)+j]; continue;}
+            if (bknight[8*(7-i)+j] != ' ') {out[9*i+j] = bknight[8*(7-i)+j]; continue;}
+            if (bpawn[8*(7-i)+j] != ' ') {out[9*i+j] = bpawn[8*(7-i)+j]; continue;}
+            out[9*i+j] = ' ';
         }
-        std::cout << std::endl;
+        out[9*i+8] = '\n';
     }
-    std::cout << std::endl;
+    return out;
 }

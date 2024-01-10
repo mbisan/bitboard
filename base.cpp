@@ -25,7 +25,12 @@ struct isInCheckResult {
 };
 
 struct Pieces {
-    Squares pawns, rooks, bishops, knights, queens, king = 0;
+    Squares pawns = 0;
+    Squares rooks = 0;
+    Squares bishops = 0;
+    Squares knights = 0;
+    Squares queens = 0;
+    Squares king = 0;
     uint8_t enPassant = 0b00000000;
     bool castleR = true;
     bool castleL = true;
