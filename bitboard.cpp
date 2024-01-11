@@ -66,13 +66,18 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
     BitLoop(enemyPieces.rooks | enemyPieces.queens) {
         uint64_t pieceIndex = bitFromSquare(temp);
         if (rookMoves[pieceIndex] & selfPieces.king) { // i.e. the enemy rook/queen can view the king (if the file/column is empty)
-            if ((PinBetween[kingIndex][pieceIndex] & occupiedNotKing) == 0) { // i.e. the enemy rook is not blocked by any piece
+
+            //    path from king to enemy (inc)       exclude enemy
+            Squares inbetween = (PinBetween[kingIndex][pieceIndex] ^ positionToBit[pieceIndex]) & occupiedNotKing;
+            std::cout << "IB" << std::endl;
+            display_int64(inbetween);
+            if (!inbetween) { // i.e. the enemy rook is not blocked by any piece
                 checkmask |= CheckBetween[kingIndex][pieceIndex];
                 checkcount++;
             } else {
-                Squares inBetweenOccupied = CheckBetween[kingIndex][pieceIndex] & occupiedNotKing;
-                if (!(inBetweenOccupied & enemySquares)) { // i.e. the enemy rook/queen is blocked only by self pieces
-                    if (!_blsr_u64(inBetweenOccupied & enemySquares)) { // there is only one self piece in between
+                Squares inbetweenEnemy = inbetween & enemySquares;
+                if (!inbetweenEnemy) { // i.e. the enemy rook/queen is not blocked by enemy pieces
+                    if (!_blsr_u64(inbetween & selfSquares)) { // there is only ONE self piece in between
                         pinmaskHV |= PinBetween[kingIndex][pieceIndex];
                     }
                 }
@@ -83,13 +88,15 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
     BitLoop(enemyPieces.bishops | enemyPieces.queens) {
         uint64_t pieceIndex = bitFromSquare(temp);
         if (bishopMoves[pieceIndex] & selfPieces.king) { // i.e. the enemy bishop/queen can view the king (if the diag is empty)
-            if ((PinBetween[kingIndex][pieceIndex] & selfNotKing) == 0) { // i.e. the enemy bishop is not blocked by any of our pieces
+
+            Squares inbetween = (PinBetween[kingIndex][pieceIndex] ^ positionToBit[pieceIndex]) & occupiedNotKing;
+            if (!inbetween) { // i.e. the enemy bishop is not blocked by any of our pieces
                 checkmask |= CheckBetween[kingIndex][pieceIndex];
                 checkcount++;
             } else {
-                Squares inBetweenOccupied = CheckBetween[kingIndex][pieceIndex] & occupiedNotKing;
-                if (!(inBetweenOccupied & enemySquares)) { // i.e. the enemy bishop/queen is blocked only by self pieces
-                    if (!_blsr_u64(inBetweenOccupied & enemySquares)) { // there is only one self piece in between
+                Squares inBetweenEnemy = inbetween & enemySquares;
+                if (!inBetweenEnemy) { // i.e. the enemy bishop/queen is blocked only by self pieces
+                    if (!_blsr_u64(inbetween & selfSquares)) { // there is only ONE self piece in between
                         pinmaskD |= PinBetween[kingIndex][pieceIndex];
                     }
                 }
