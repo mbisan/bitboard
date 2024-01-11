@@ -10,12 +10,12 @@
 				"-std=c++2a",
 				"-march=native",
 				"-g",
-				"/home/mbikandi/Documents/bitboard/bitboard.cpp",
+				"/home/martin/bitboard/bitboard.cpp",
 				"-o",
-				"/home/mbikandi/Documents/bitboard/bitboard"
+				"/home/martin/bitboard/bitboard"
 			],
 			"options": {
-				"cwd": "/home/mbikandi/Documents/bitboard/"
+				"cwd": "/home/martin/bitboard/"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -26,11 +26,11 @@
 		{
 			"type": "shell",
 			"label": "C++: run",
-			"command": "/home/mbikandi/Documents/bitboard/bitboard",
+			"command": "/home/martin/bitboard/bitboard",
 			"args": [
 			],
 			"options": {
-				"cwd": "/home/mbikandi/Documents/bitboard/"
+				"cwd": "/home/martin/bitboard/"
 			},
 			"dependsOn": "C++: g++ compile",
 			"group": "build",

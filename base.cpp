@@ -9,6 +9,8 @@
 #define pawnInitial(isWhite) (isWhite ? 1 : 6)
 #define pawnAdvace(isWhite) (isWhite ? 8 : -8)
 
+#define enPassantFile(isWhite) (isWhite ? 4 : 2)
+
 // _blsr_u64(X) https://www.felixcloutier.com/x86/blsr sets the lowest set bit to 0 i.e. _blsr_u64(0b100100) = 0b100000
 // _tzcnt_u64(X) https://www.felixcloutier.com/x86/blsr counts number of trailing zeros i.e. _tzcnt_u64(0b100100) = 2
 
@@ -19,7 +21,8 @@
 
 struct isInCheckResult {
     int checkCount;
-    Squares checkmask;
+    Squares checkMask;
+    Squares kingCheckMask;
     Squares pinmaskHV;
     Squares pinmaskD;
 };
