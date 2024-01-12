@@ -69,7 +69,6 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
     int checkcount = 0;
 
     Squares checkMask = 0;
-    Squares kingCheckMask = 0;
     Squares pinmaskHV = 0;
     Squares pinmaskD = 0;
     Squares enpassantpin = 0;
@@ -82,8 +81,7 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
             Squares inbetween = (PinBetween[kingIndex][pieceIndex] ^ positionToBit[pieceIndex]) & occupiedNotKing;
 
             if (!inbetween) { // i.e. the enemy rook is not blocked by any piece
-                kingCheckMask |= CheckBetween[kingIndex][pieceIndex] | positionToBit[pieceIndex];
-                checkMask |= PinBetween[kingIndex][pieceIndex] | positionToBit[pieceIndex];
+                checkMask |= PinBetween[kingIndex][pieceIndex];
                 checkcount++;
             } else { // there are pieces in the way
                 Squares inbetweenPieces = inbetween & occupiedSquares;
@@ -107,8 +105,7 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
             Squares inbetween = (PinBetween[kingIndex][pieceIndex] ^ positionToBit[pieceIndex]) & occupiedNotKing;
 
             if (!inbetween) { // i.e. the enemy bishop is not blocked by any of our pieces
-                kingCheckMask |= CheckBetween[kingIndex][pieceIndex] | positionToBit[pieceIndex];
-                checkMask |= PinBetween[kingIndex][pieceIndex] | positionToBit[pieceIndex];
+                checkMask |= PinBetween[kingIndex][pieceIndex];
                 checkcount++;
             } else {
                 Squares inBetweenEnemy = inbetween & enemySquares;
@@ -124,8 +121,7 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
     BitLoop(enemyPieces.knights) {
         uint64_t pieceIndex = bitFromSquare(temp);
         if (knightMoves[pieceIndex] & selfPieces.king) { // i.e. the enemy knight can reach our king
-            Squares temp = (knightMoves[kingIndex] & enemyPieces.knights) | positionToBit[kingIndex];
-            kingCheckMask |= temp; // add the knight to the checkmask
+            Squares temp = (knightMoves[kingIndex] & enemyPieces.knights);
             checkMask |= temp;
             checkcount++;
         }
@@ -134,13 +130,12 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
     BitLoop(enemyPieces.pawns) {
         uint64_t pieceIndex = bitFromSquare(temp);
         if (pawnAttacks(!isWhite)[pieceIndex] & selfPieces.king) { // i.e. pawn attacking our king
-            kingCheckMask |= selfPieces.king;
-            checkMask |= selfPieces.king | positionToBit[pieceIndex];
+            checkMask |= positionToBit[pieceIndex];
             checkcount++;
         }
     }
 
-    return {checkcount, checkMask, kingCheckMask, pinmaskHV, pinmaskD, enpassantpin};
+    return {checkcount, checkMask, 0, pinmaskHV, pinmaskD, enpassantpin};
 }
 
 Pieces removePiece(Pieces pieces, Squares removepositions) {
@@ -170,6 +165,7 @@ std::vector<Board> generateMoves(const Board board) {
     // Squares selfSeen = Seen(*enemy, *self, !board.isWhite);
 
     Squares selfPieces = occupied(*self);
+    Squares notSelf = ~selfPieces;
     Squares enemyPieces = occupied(*enemy);
     Squares alloccupied = selfPieces | enemyPieces;
 
@@ -177,7 +173,7 @@ std::vector<Board> generateMoves(const Board board) {
 
     if (r.checkCount > 1) { // double check forces king to move
         // king can only move to squares not seen by enemy and not occupied by enemy pieces
-        Squares kingReachable = kingMoves[kingIndex] & ~selfPieces & ~enemySeen;
+        Squares kingReachable = kingMoves[kingIndex] & notSelf & ~enemySeen;
         Pieces selfPiecesNew = *self; selfPiecesNew.king ^= self->king; selfPiecesNew.castles = 0;
 
         BitLoop(kingReachable) {
@@ -198,12 +194,12 @@ std::vector<Board> generateMoves(const Board board) {
         }
         return newMoves;
     } 
-    if (r.checkCount == 0) r.checkMask = 0xffffffffffffffff; r.kingCheckMask = 0xffffffffffffffff;// if no checks are given, then all squares are available for all pieces
+    if (r.checkCount == 0) r.checkMask = 0xffffffffffffffff; // if no checks are given, then all squares are available for all pieces
 
     Pieces selfPiecesNew;  
 
     // generate king moves
-    Squares kingReachable = kingMoves[kingIndex] & ~selfPieces & ~enemySeen & r.kingCheckMask;
+    Squares kingReachable = kingMoves[kingIndex] & notSelf & ~enemySeen;
     // std::cout << "KingMoves" << std::endl; display_int64(kingReachable);
     selfPiecesNew = *self; selfPiecesNew.king ^= self->king; selfPiecesNew.castles = 0;
     BitLoop(kingReachable) {
@@ -222,7 +218,7 @@ std::vector<Board> generateMoves(const Board board) {
     // non-pinned rooks
     BitLoop(self->rooks & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & ~selfPieces & r.checkMask;
+        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & notSelf & r.checkMask;
         // std::cout << "Non-Pinned rooks" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.rooks ^= positionToBit[pieceIndex];
         
@@ -244,7 +240,7 @@ std::vector<Board> generateMoves(const Board board) {
     // non-pinned queens
     BitLoop(self->queens & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & ~selfPieces & r.checkMask;
+        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & notSelf & r.checkMask;
         // std::cout << "Non-Pinned rooks" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.queens ^= positionToBit[pieceIndex];
         
@@ -263,7 +259,7 @@ std::vector<Board> generateMoves(const Board board) {
     // pinned rooks
     BitLoop(self->rooks & pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskHV & ~selfPieces & r.checkMask;
+        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskHV & notSelf & r.checkMask;
         // std::cout << "Pinned rooks" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.rooks ^= positionToBit[pieceIndex];
         
@@ -285,7 +281,7 @@ std::vector<Board> generateMoves(const Board board) {
     // pinned queens
     BitLoop(self->queens & pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskHV & ~selfPieces & r.checkMask;
+        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskHV & notSelf & r.checkMask;
         // std::cout << "Pinned rooks" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.queens ^= positionToBit[pieceIndex];
         
@@ -306,7 +302,7 @@ std::vector<Board> generateMoves(const Board board) {
     // non-pinned bishops
     BitLoop(self->bishops & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & ~selfPieces & r.checkMask;;
+        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & notSelf & r.checkMask;;
         // std::cout << "Non-pinned bishops" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.bishops ^= positionToBit[pieceIndex];
 
@@ -325,7 +321,7 @@ std::vector<Board> generateMoves(const Board board) {
     // non-pinned queens
     BitLoop(self->queens & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & ~selfPieces & r.checkMask;;
+        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & notSelf & r.checkMask;;
         // std::cout << "Non-pinned bishops" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.queens ^= positionToBit[pieceIndex];
 
@@ -344,7 +340,7 @@ std::vector<Board> generateMoves(const Board board) {
     // pinned bishops
     BitLoop((self->bishops | self->queens) & pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskD & ~selfPieces & r.checkMask;
+        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskD & notSelf & r.checkMask;
         // std::cout << "Pinned bishops" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.bishops ^= positionToBit[pieceIndex];
 
@@ -363,7 +359,7 @@ std::vector<Board> generateMoves(const Board board) {
     // pinned queens
     BitLoop(self->queens & pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskD & ~selfPieces & r.checkMask;
+        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskD & notSelf & r.checkMask;
         // std::cout << "Pinned bishops" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.queens ^= positionToBit[pieceIndex];
 
@@ -382,7 +378,7 @@ std::vector<Board> generateMoves(const Board board) {
     // generate knight moves
     BitLoop(self->knights & ~pinmask) { // pinned knight cannot move, so only consider unpinned knights
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = knightMoves[pieceIndex] & ~selfPieces & r.checkMask;
+        Squares reachable = knightMoves[pieceIndex] & notSelf & r.checkMask;
         // std::cout << "Non-pinned Knights" << std::endl; display_int64(reachable);
         selfPiecesNew = *self; selfPiecesNew.knights ^= positionToBit[pieceIndex];
 
@@ -607,7 +603,7 @@ int main(void) {
     isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
 
     auto start_time = std::chrono::high_resolution_clock::now();
-    std::cout << traverse(b, 4) << std::endl;
+    std::cout << traverse(b, 3) << std::endl;
     // b.isWhite = false;
     // for (int i=0; i<10000000; i++) {
     //     auto moves = generateMoves(b);
