@@ -164,9 +164,6 @@ std::vector<Board> generateMoves(const Board board) {
     Squares enemySeen = Seen(*self, *enemy, board.isWhite);
     // Squares selfSeen = Seen(*enemy, *self, !board.isWhite);
 
-    if (r.checkMask) std::cout << boardToStr(board) << std::endl;
-    if (pinmask) std::cout << boardToStr(board) << std::endl;
-
     Squares selfPieces = occupied(*self);
     Squares notSelf = ~selfPieces;
     Squares enemyPieces = occupied(*enemy);
@@ -583,7 +580,6 @@ int traverse(const Board &initialPosition, int depth) {
     for (auto position : initialmoves) {
         // std::cout << boardToStr(position) << std::endl;
         initialMoveCount += traverse(position, depth-1);
-        if (position.gameResult > 0) std::cout << boardToStr(position) << std::endl;
     }
 
     return initialMoveCount;
@@ -592,7 +588,7 @@ int traverse(const Board &initialPosition, int depth) {
 
 int main(void) {
     Board a = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
-    a.isWhite = false;
+    a.isWhite = true;
     Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
     // Board b = positionToBoard("4K3/3p4/8/8/8/8/8/k7/-/W");
     b.isWhite = true;
@@ -607,12 +603,12 @@ int main(void) {
     // isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
 
     auto start_time = std::chrono::high_resolution_clock::now();
-    std::cout << "White starts: " << traverse(b, 3) << std::endl;
+    std::cout << "White starts: " << traverse(b, 4) << std::endl;
     // b.isWhite = false;
     // for (int i=0; i<10000000; i++) {
     //     auto moves = generateMoves(b);
     // }
-    std::cout << "Black starts: " << traverse(a, 3) << std::endl;
+    std::cout << "White starts: " << traverse(a, 5) << std::endl;
     auto end_time = std::chrono::high_resolution_clock::now();
 
     // auto moves = generateMoves(b);
