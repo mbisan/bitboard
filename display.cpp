@@ -124,7 +124,7 @@ std::string boardToStr(const Board &board) {
     auto bknight = cInSetBits(board.blackPieces.knights, "n");
     auto bpawn = cInSetBits(board.blackPieces.pawns, "p");
 
-    char out[64 + 8];
+    char out[64 + 8 + 1];
     for (int i=0; i<8; i++) {
         for (int j=0; j<8; j++) {
             if (wking[8*(7-i)+j] != ' ') {out[9*i+j] = wking[8*(7-i)+j]; continue;}
@@ -143,5 +143,8 @@ std::string boardToStr(const Board &board) {
         }
         out[9*i+8] = '\n';
     }
-    return out;
+    out[9*8] = '\0';
+
+    std::string out2 = "--------\n" + (std::string) out + "--------";
+    return out2;
 }
