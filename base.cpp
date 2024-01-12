@@ -11,6 +11,14 @@
 
 #define enPassantFile(isWhite) (isWhite ? 4 : 2)
 
+#define pawnStartFile(isWhite) (isWhite ? 0x000000000000ff00ULL : 0x00ff000000000000ULL)
+#define startFile(isWhite) (isWhite ? 0x00000000000000ffULL : 0xff00000000000000ULL)
+#define pawnEP(isWhite) (isWhite ? 0x000000ff00000000ULL : 0x00000000ff000000ULL)
+
+#define castleLcheck(isWhite) (isWhite ? 0x000000000000000cULL : 0x0c00000000000000ULL)
+#define castleLocc(isWhite) (isWhite ? 0x000000000000000eULL : 0x0e00000000000000ULL)
+#define castleRcheck(isWhite) (isWhite ? 0x0000000000000060ULL : 0x6000000000000000ULL)
+
 // _blsr_u64(X) https://www.felixcloutier.com/x86/blsr sets the lowest set bit to 0 i.e. _blsr_u64(0b100100) = 0b100000
 // _tzcnt_u64(X) https://www.felixcloutier.com/x86/blsr counts number of trailing zeros i.e. _tzcnt_u64(0b100100) = 2
 
@@ -25,6 +33,7 @@ struct isInCheckResult {
     Squares kingCheckMask;
     Squares pinmaskHV;
     Squares pinmaskD;
+    Squares enpassantpin;
 };
 
 struct Pieces {

@@ -4,6 +4,13 @@ Squares occupied(const Pieces &pieces) {
     return (pieces.pawns|pieces.rooks|pieces.bishops|pieces.knights|pieces.queens|pieces.king);
 }
 
+Squares reachableNotBlocked(Squares reachableIfNotBlocked, Squares occupied, uint64_t pieceIndex) {
+    BitLoop(reachableIfNotBlocked & occupied) {
+        reachableIfNotBlocked &= attacking[pieceIndex][bitFromSquare(temp)];
+    }
+    return reachableIfNotBlocked;
+}
+
 Squares Seen(const Pieces &selfPieces, const Pieces &enemyPieces, bool isWhite) {
 
     Squares enemySquares = occupied(enemyPieces);
@@ -14,20 +21,20 @@ Squares Seen(const Pieces &selfPieces, const Pieces &enemyPieces, bool isWhite) 
 
     BitLoop(enemyPieces.rooks | enemyPieces.queens) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares rookReachable = rookMoves[pieceIndex];
-        for(uint64_t temp2 = rookReachable & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
-            rookReachable &= attacking[pieceIndex][bitFromSquare(temp2)];
-        }
-        enemySeen |= rookReachable;
+        // Squares rookReachable = rookMoves[pieceIndex];
+        // for(uint64_t temp2 = rookReachable & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
+        //     rookReachable &= attacking[pieceIndex][bitFromSquare(temp2)];
+        // }
+        enemySeen |= reachableNotBlocked(rookMoves[pieceIndex], occupiedSquares, pieceIndex);
     }
 
     BitLoop(enemyPieces.bishops | enemyPieces.queens) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares bishopReachable = bishopMoves[pieceIndex];
-        for(uint64_t temp2 = bishopReachable & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
-            bishopReachable &= attacking[pieceIndex][bitFromSquare(temp2)];
-        }
-        enemySeen |= bishopReachable;
+        // Squares bishopReachable = bishopMoves[pieceIndex];
+        // for(uint64_t temp2 = bishopReachable & occupiedSquares; temp2; temp2 = _blsr_u64(temp2)) {
+        //     bishopReachable &= attacking[pieceIndex][bitFromSquare(temp2)];
+        // }
+        enemySeen |= reachableNotBlocked(bishopMoves[pieceIndex], occupiedSquares, pieceIndex);
     }
 
     BitLoop(enemyPieces.knights) {
@@ -63,6 +70,7 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
     Squares kingCheckMask = 0;
     Squares pinmaskHV = 0;
     Squares pinmaskD = 0;
+    Squares enpassantpin = 0;
 
     // TODO the case of enpassant pinned pawn
     BitLoop(enemyPieces.rooks | enemyPieces.queens) {
@@ -76,11 +84,15 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
                 kingCheckMask |= CheckBetween[kingIndex][pieceIndex] | positionToBit[pieceIndex];
                 checkMask |= PinBetween[kingIndex][pieceIndex];
                 checkcount++;
-            } else {
-                Squares inbetweenEnemy = inbetween & enemySquares;
-                if (!inbetweenEnemy) { // i.e. the enemy rook/queen is not blocked by enemy pieces
-                    if (!_blsr_u64(inbetween & selfSquares)) { // there is only ONE self piece in between
-                        pinmaskHV |= PinBetween[kingIndex][pieceIndex];
+            } else { // there are pieces in the way
+                Squares inbetweenPieces = inbetween & occupiedSquares;
+                Squares onePieceRemoved = _blsr_u64(inbetweenPieces);
+                if (!onePieceRemoved) { // i.e. the enemy rook/queen is blocked by a single piece, then this piece is pinned
+                    pinmaskHV |= PinBetween[kingIndex][pieceIndex];
+                } else if (!_blsr_u64(onePieceRemoved)) { // there are two pieces in the way, therefore the only way for a piece to be pinned is that the piece is an enpassant pawn
+                    if (enemyPieces.enPassant && (int)pieceIndex/8 == kingFile && inbetweenPieces & selfPieces.pawns) { 
+                        // there is enpassant pawn for enemy on the same file as the king AND the other piece is a self pawn
+                        enpassantpin = inbetweenPieces & selfPieces.pawns; // i.e. mask the self pawn so that it cannot take enpassant
                     }
                 }
             }
@@ -127,7 +139,7 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
         }
     }
 
-    return {checkcount, checkMask, kingCheckMask, pinmaskHV, pinmaskD};
+    return {checkcount, checkMask, kingCheckMask, pinmaskHV, pinmaskD, enpassantpin};
 }
 
 std::vector<Board> generateMoves(const Board board) {
@@ -166,6 +178,7 @@ std::vector<Board> generateMoves(const Board board) {
 
     // generate king moves
     Squares kingReachable = kingMoves[bitFromSquare(self->king)] & ~selfPieces & ~enemySeen & r.kingCheckMask;
+    // std::cout << "KingMoves" << std::endl; display_int64(kingReachable);
     BitLoop(kingReachable) {
         newMoves.push_back(board);
     }
@@ -175,17 +188,15 @@ std::vector<Board> generateMoves(const Board board) {
     // non-pinned rooks
     BitLoop((self->rooks | self->queens) & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = rookMoves[pieceIndex] & selfSeen & ~selfPieces & r.checkMask; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
-        }
+        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & selfSeen & ~selfPieces & r.checkMask;
+        // std::cout << "Non-Pinned rooks" << std::endl; display_int64(reachable);
     }
 
     // pinned rooks
     BitLoop((self->rooks | self->queens) & pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = rookMoves[pieceIndex] & r.pinmaskHV & selfSeen & ~selfPieces & r.checkMask; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
-        }
+        Squares reachable = reachableNotBlocked(rookMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskHV & selfSeen & ~selfPieces & r.checkMask;
+        // std::cout << "Pinned rooks" << std::endl; display_int64(reachable);
     }
 
     // generate bishop/queen moves
@@ -193,67 +204,106 @@ std::vector<Board> generateMoves(const Board board) {
     // non-pinned bishops
     BitLoop((self->bishops | self->queens) & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = bishopMoves[pieceIndex] & selfSeen & ~selfPieces & r.checkMask; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
-        }
+        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & selfSeen & ~selfPieces & r.checkMask;;
+        // std::cout << "Non-pinned bishops" << std::endl; display_int64(reachable);
     }
 
     // pinned bishops
     BitLoop((self->bishops | self->queens) & pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = bishopMoves[pieceIndex] & r.pinmaskD & selfSeen & ~selfPieces & r.checkMask; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
-        }
+        Squares reachable = reachableNotBlocked(bishopMoves[pieceIndex], alloccupied, pieceIndex) & r.pinmaskD & selfSeen & ~selfPieces & r.checkMask;
+        // std::cout << "Pinned bishops" << std::endl; display_int64(reachable);
     }
 
     // generate knight moves
     BitLoop(self->knights & ~pinmask) { // pinned knight cannot move, so only consider unpinned knights
         uint64_t pieceIndex = bitFromSquare(temp);
-        for(uint64_t temp2 = knightMoves[pieceIndex] & ~selfPieces & r.checkMask; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
-        }
+        Squares reachable = knightMoves[pieceIndex] & ~selfPieces & r.checkMask;
+        // std::cout << "Non-pinned Knights" << std::endl; display_int64(reachable);
     }
 
-    // generate pawn moves
-    BitLoop(self->pawns & pinmask) { // pinned pawns
+    BitLoop(self->pawns & pinmask & pawnStartFile(board.isWhite)) { // starting file pinned pawns
         uint64_t pieceIndex = bitFromSquare(temp);
-        // advancing pawn 2 squares
-        if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied) {
-            if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied & r.checkMask & r.pinmaskHV) {
-                newMoves.push_back(board);
-            }
-            if ((pieceIndex%8 == pawnInitial(board.isWhite)) && 
-                (positionToBit[pieceIndex + 2 * pawnAdvace(board.isWhite)] & ~alloccupied & r.checkMask & r.pinmaskHV)) {
-                newMoves.push_back(board);
-            }
-        }
+        Squares reachable = 0;
+        if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & r.pinmaskHV & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
 
-        for(uint64_t temp2 = pawnAttacks(board.isWhite)[pieceIndex] & enemyPieces & r.checkMask & r.pinmaskD; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
+            if (positionToBit[pieceIndex + 2 * pawnAdvace(board.isWhite)] & ~alloccupied) { // i.e. 2 squares in front of pawn not occupied
+                reachable |= positionToBit[pieceIndex + 2 * pawnAdvace(board.isWhite)] & r.pinmaskHV & r.checkMask;
+            }
+
         }
+        reachable |= pawnAttacks(board.isWhite)[pieceIndex] & r.pinmaskD & r.checkMask & enemyPieces;
+        // std::cout << "Starting file pinned pawns" << std::endl; display_int64(reachable);
     }
 
-    BitLoop(self->pawns & pinmask) { // non-pinned pawns
+    BitLoop(self->pawns & pinmask & ~pawnStartFile(board.isWhite)) { // pinned pawns not in starting file
         uint64_t pieceIndex = bitFromSquare(temp);
-        // advancing pawn 2 squares
-        if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied) { // piece blocking path
-            if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied & r.checkMask) { // advance 1 square
-                newMoves.push_back(board);
-            }
-            if ((pieceIndex%8 == pawnInitial(board.isWhite)) && 
-                (positionToBit[pieceIndex + 2 * pawnAdvace(board.isWhite)] & ~alloccupied & r.checkMask)) { // advance 2 squares
-                newMoves.push_back(board);
-            }
+        Squares reachable = 0;
+        if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & r.pinmaskHV & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
         }
+        reachable |= pawnAttacks(board.isWhite)[pieceIndex] & r.pinmaskD & r.checkMask & enemyPieces;
+        // std::cout << "NOT Starting file pinned pawns" << std::endl; display_int64(reachable);
+    }
 
-        for(uint64_t temp2 = pawnAttacks(board.isWhite)[pieceIndex] & enemyPieces & r.checkMask; temp2; temp2 = _blsr_u64(temp2)) {
-            newMoves.push_back(board);
+    BitLoop(self->pawns & ~pinmask & pawnStartFile(board.isWhite)) { // starting file NON - pinned pawns
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = 0;
+        if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
+
+            if (positionToBit[pieceIndex + 2 * pawnAdvace(board.isWhite)] & ~alloccupied) { // i.e. 2 squares in front of pawn not occupied
+                reachable |= positionToBit[pieceIndex + 2 * pawnAdvace(board.isWhite)] & r.checkMask;
+            }
+
+        }
+        reachable |= pawnAttacks(board.isWhite)[pieceIndex] & r.checkMask & enemyPieces;
+        // std::cout << "Starting file NON pinned pawns" << std::endl; display_int64(reachable);
+    }
+
+    BitLoop(self->pawns & ~pinmask & ~pawnStartFile(board.isWhite)) { // pinned pawns not in starting file
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = 0;
+        if (positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & ~alloccupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(board.isWhite)] & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
+        }
+        reachable |= pawnAttacks(board.isWhite)[pieceIndex] & r.checkMask & enemyPieces;
+        // std::cout << "NON Starting file NON pinned pawns" << std::endl; display_int64(reachable);
+    }
+
+    if (enemy->enPassant) { // there is an enpassant pawn for the enemy
+        Squares enemyEnPassant = (Squares) enemy->enPassant << (board.isWhite ? 32 : 24);
+        BitLoop(self->pawns & ~r.enpassantpin & pawnEP(board.isWhite) & ~r.pinmaskHV) { // enpassant NON - ep-pinned pawns, non HV pinned
+            uint64_t pieceIndex = bitFromSquare(temp); int piececol = pieceIndex % 8;
+
+            if (positionToBit[pieceIndex + 1] & enemyEnPassant) {
+                // check if the taken piece is not D pinned
+                if (enemyEnPassant & r.pinmaskD) continue;
+                // self piece is part of pinD -> end square must be part of pinD
+                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(board.isWhite) + 1] & r.pinmaskD)) continue;
+                std::cout << "Can take enpassant to square" << (int) pieceIndex + pawnAdvace(board.isWhite) + 1 << std::endl;
+            } else if (positionToBit[pieceIndex - 1] & enemyEnPassant) {
+                // check if the taken piece is not D pinned
+                if (enemyEnPassant & r.pinmaskD) continue;
+                // self piece is part of pinD -> end square must be part of pinD
+                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(board.isWhite) - 1] & r.pinmaskD)) continue;
+                std::cout << "Can take enpassant to square" << (int) pieceIndex + pawnAdvace(board.isWhite) - 1 << std::endl;
+            }
         }
     }
 
-    // TODO en-passant
+    if (self->castleL) {
+        if (!(alloccupied & castleLocc(board.isWhite)) && !(castleLcheck(board.isWhite) & enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
+            std::cout << "Can CastleL" << std::endl;
+        }
+    }
 
-    // TODO castles
+    if (self->castleR) {
+        if (!(alloccupied & castleRcheck(board.isWhite)) && !(castleRcheck(board.isWhite) & enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
+            std::cout << "Can CastleR" << std::endl;
+        }
+    }
 
     return newMoves;
 }
@@ -261,9 +311,14 @@ std::vector<Board> generateMoves(const Board board) {
 int main(void) {
 
     // Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
-    Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
+    // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
+    // enpassant pinned
+    Board b = positionToBoard("K1R5/P15P/8/BBpP3k/2P5/7b/6p1/1r1q4/-/W");
+    // Board b = positionToBoard("K1R5/PP5P/8/8/Q2r3k/7b/6p1/1r1q4/-/W");
+    // Board b = positionToBoard("K1R5/PP5P/7P/7P/Q213k/7b/5np1/1r1q4/-/W");
 
     std::cout << boardToStr(b) << std::endl;
+    b.whitePieces.enPassant = 0b00000010;
 
     isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
 
