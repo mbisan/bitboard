@@ -496,7 +496,7 @@ std::vector<Board> generateMoves(const Board board) {
     if (enemy->enPassant) { // there is an enpassant pawn for the enemy
         Squares enemyEnPassant = (Squares) enemy->enPassant << (board.isWhite ? 32 : 24);
         BitLoop(self->pawns & ~r.enpassantpin & pawnEP(board.isWhite) & ~r.pinmaskHV) { // enpassant NON - ep-pinned pawns, non HV pinned
-            uint64_t pieceIndex = bitFromSquare(temp); int piececol = pieceIndex % 8;
+            uint64_t pieceIndex = bitFromSquare(temp);
 
             if (positionToBit[pieceIndex + 1] & enemyEnPassant) {
                 // check if the taken piece is not D pinned
