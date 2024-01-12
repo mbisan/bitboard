@@ -164,6 +164,9 @@ std::vector<Board> generateMoves(const Board board) {
     Squares enemySeen = Seen(*self, *enemy, board.isWhite);
     // Squares selfSeen = Seen(*enemy, *self, !board.isWhite);
 
+    if (r.checkMask) std::cout << boardToStr(board) << std::endl;
+    if (pinmask) std::cout << boardToStr(board) << std::endl;
+
     Squares selfPieces = occupied(*self);
     Squares notSelf = ~selfPieces;
     Squares enemyPieces = occupied(*enemy);
@@ -588,7 +591,8 @@ int traverse(const Board &initialPosition, int depth) {
 
 
 int main(void) {
-
+    Board a = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
+    a.isWhite = false;
     Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
     // Board b = positionToBoard("4K3/3p4/8/8/8/8/8/k7/-/W");
     b.isWhite = true;
@@ -598,16 +602,17 @@ int main(void) {
     // Board b = positionToBoard("K1R5/PP5P/8/8/Q2r3k/7b/6p1/1r1q4/-/W");
     // Board b = positionToBoard("K1R5/PP5P/7P/7P/Q213k/7b/5np1/1r1q4/-/W");
 
-    std::cout << boardToStr(b) << std::endl;
+    // std::cout << boardToStr(b) << std::endl;
 
-    isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
+    // isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
 
     auto start_time = std::chrono::high_resolution_clock::now();
-    std::cout << traverse(b, 3) << std::endl;
+    std::cout << "White starts: " << traverse(b, 3) << std::endl;
     // b.isWhite = false;
     // for (int i=0; i<10000000; i++) {
     //     auto moves = generateMoves(b);
     // }
+    std::cout << "Black starts: " << traverse(a, 3) << std::endl;
     auto end_time = std::chrono::high_resolution_clock::now();
 
     // auto moves = generateMoves(b);
