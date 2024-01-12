@@ -84,14 +84,13 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
                 checkMask |= PinBetween[kingIndex][pieceIndex];
                 checkcount++;
             } else { // there are pieces in the way
-                Squares inbetweenPieces = inbetween & occupiedSquares;
-                Squares onePieceRemoved = _blsr_u64(inbetweenPieces);
+                Squares onePieceRemoved = _blsr_u64(inbetween);
                 if (!onePieceRemoved) { // i.e. the enemy rook/queen is blocked by a single piece, then this piece is pinned
                     pinmaskHV |= PinBetween[kingIndex][pieceIndex];
                 } else if (!_blsr_u64(onePieceRemoved)) { // there are two pieces in the way, therefore the only way for a piece to be pinned is that the piece is an enpassant pawn
-                    if (enemyPieces.enPassant && (int)pieceIndex/8 == kingFile && inbetweenPieces & selfPieces.pawns) { 
+                    if (enemyPieces.enPassant && (int)pieceIndex/8 == kingFile && inbetween & selfPieces.pawns) { 
                         // there is enpassant pawn for enemy on the same file as the king AND the other piece is a self pawn
-                        enpassantpin = inbetweenPieces & selfPieces.pawns; // i.e. mask the self pawn so that it cannot take enpassant
+                        enpassantpin = inbetween & selfPieces.pawns; // i.e. mask the self pawn so that it cannot take enpassant
                     }
                 }
             }
