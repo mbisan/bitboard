@@ -107,11 +107,8 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
                 checkMask |= PinBetween[kingIndex][pieceIndex];
                 checkcount++;
             } else {
-                Squares inBetweenEnemy = inbetween & enemySquares;
-                if (!inBetweenEnemy) { // i.e. the enemy bishop/queen is blocked only by self pieces
-                    if (!_blsr_u64(inbetween & selfSquares)) { // there is only ONE self piece in between
-                        pinmaskD |= PinBetween[kingIndex][pieceIndex];
-                    }
+                if (!_blsr_u64(inbetween)) { // there is only ONE piece in between
+                    pinmaskD |= PinBetween[kingIndex][pieceIndex];
                 }
             }
         }
