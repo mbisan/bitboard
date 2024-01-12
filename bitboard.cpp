@@ -131,7 +131,7 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, b
         }
     }
 
-    return {checkcount, checkMask, 0, pinmaskHV, pinmaskD, enpassantpin};
+    return {checkcount, checkMask, pinmaskHV, pinmaskD, enpassantpin};
 }
 
 Pieces removePiece(Pieces pieces, Squares removepositions) {

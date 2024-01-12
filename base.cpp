@@ -31,7 +31,6 @@
 struct isInCheckResult {
     int checkCount;
     Squares checkMask;
-    Squares kingCheckMask;
     Squares pinmaskHV;
     Squares pinmaskD;
     Squares enpassantpin;
