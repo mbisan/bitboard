@@ -528,7 +528,6 @@ std::vector<Board> generateMoves(const Board board) {
     }
 
     if (newMoves.size() == 0) {
-        std::cout << "No moves" << std::endl;
         if (board.isWhite) newMoves.push_back({*self, *enemy, !board.isWhite, (uint8_t) (r.checkCount ? 0b1 : 0b10)});
         else newMoves.push_back({*enemy, *self, !board.isWhite, (uint8_t) (r.checkCount ? 0b1 : 0b10)});
         return newMoves;
@@ -545,12 +544,7 @@ int traverse(const Board &initialPosition, int depth) {
 
     for (auto position : initialmoves) {
         // std::cout << boardToStr(position) << std::endl;
-        if (!position.gameResult) {
-            initialMoveCount += traverse(position, depth-1);
-        } else {
-            std::cout << "problem" << std::endl;
-            initialMoveCount++;
-        }
+        initialMoveCount += traverse(position, depth-1);
     }
 
     return initialMoveCount;
@@ -560,8 +554,7 @@ int traverse(const Board &initialPosition, int depth) {
 int main(void) {
 
     Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
-    // Board b = positionToBoard("RNB1KBNR/PPPP1PPP/4P3/8/7Q/5p2/ppppp1pp/rnbqkbnr/-/W");
-    b.isWhite = true;
+    b.isWhite = false;
     // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
     // enpassant pinned
     // Board b = positionToBoard("K1R5/P15P/8/QPpP3k/2P5/7b/6p1/1r1q4/-/W");
@@ -574,7 +567,11 @@ int main(void) {
     isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
 
     auto start_time = std::chrono::high_resolution_clock::now();
-    std::cout << traverse(b, 3) << std::endl;
+    std::cout << traverse(b, 4) << std::endl;
+    // b.isWhite = false;
+    // for (int i=0; i<10000000; i++) {
+    //     auto moves = generateMoves(b);
+    // }
     auto end_time = std::chrono::high_resolution_clock::now();
 
     // auto moves = generateMoves(b);
