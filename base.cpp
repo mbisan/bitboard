@@ -25,6 +25,7 @@
 // for(; X; X=_blsr_u64(X)) std::cout << _tzcnt_u64(X) << ", "; 0b1100100 > outputs 2, 5, 6
 
 #define BitLoop(x) for(uint64_t temp=x; temp; temp=_blsr_u64(temp))
+#define BitLoop2(x) for(uint64_t temp2=x; temp2; temp2=_blsr_u64(temp2))
 #define bitFromSquare(x) _tzcnt_u64(x)
 
 struct isInCheckResult {
@@ -49,6 +50,8 @@ struct Pieces {
 };
 
 struct Board {
-    Pieces whitePieces, blackPieces;
+    Pieces whitePieces;
+    Pieces blackPieces;
     bool isWhite;
+    uint8_t gameResult = 0;
 };

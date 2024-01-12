@@ -9,6 +9,7 @@
 				"-fdiagnostics-color=always",
 				"-std=c++2a",
 				"-march=native",
+				"-O3",
 				"-g",
 				"/home/martin/bitboard/bitboard.cpp",
 				"-o",
