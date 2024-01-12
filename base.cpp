@@ -44,8 +44,7 @@ struct Pieces {
     Squares queens = 0;
     Squares king = 0;
     uint8_t enPassant = 0b00000000;
-    bool castleR = true;
-    bool castleL = true;
+    uint8_t castles = 0b11; // (castles & 1) is true if can left castle, (castles & 2) if can right castle
     // bit pawnsID[64], rooksID[64], bishopsID[64], knightsID[64], queensID[64] {0};
 };
 

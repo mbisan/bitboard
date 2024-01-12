@@ -293,13 +293,13 @@ std::vector<Board> generateMoves(const Board board) {
         }
     }
 
-    if (self->castleL) {
+    if (self->castles & 1U) { // castles left
         if (!(alloccupied & castleLocc(board.isWhite)) && !(castleLcheck(board.isWhite) & enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
             std::cout << "Can CastleL" << std::endl;
         }
     }
 
-    if (self->castleR) {
+    if (self->castles & 2U) { // castles right
         if (!(alloccupied & castleRcheck(board.isWhite)) && !(castleRcheck(board.isWhite) & enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
             std::cout << "Can CastleR" << std::endl;
         }
