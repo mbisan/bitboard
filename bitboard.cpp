@@ -639,10 +639,10 @@ std::vector<Board> generateMoves(const Board board) {
     return newMoves;
 }
 
-int traverse(const Board &initialPosition, int depth) {
-    if (depth==0) return 1;
+uint64_t traverse(const Board &initialPosition, int depth) {
+    if (depth==0) return 1ULL;
 
-    int initialMoveCount = 0;
+    uint64_t initialMoveCount = 0;
 
     auto initialmoves = generateMoves(initialPosition);
     // if (depth==1) std::cout << initialmoves.size() << std::endl;
@@ -686,34 +686,37 @@ int main(void) {
     // // Board b = positionToBoard("4K3/3p4/8/8/8/8/8/k7/-/W");
     b.isWhite = true;
 
-    std::cout << "Depth 1: " << traverse(b, 1) << std::endl;
-    std::cout << "Depth 2: " << traverse(b, 2) << std::endl;
-    std::cout << "Depth 3: " << traverse(b, 3) << std::endl;
-    std::cout << "Depth 4: " << traverse(b, 4) << std::endl;
-    std::cout << "Depth 5: " << traverse(b, 5) << std::endl;
-    std::cout << "Depth 6: " << traverse(b, 6) << std::endl;
+    std::cout << boardToStr(b) << std::endl;
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
+    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
+    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
+    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
+    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
+    std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
+    std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
     // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
     // enpassant pinned
     // Board b = positionToBoard("K1R5/P15P/8/QPpP3k/2P5/7b/6p1/1r1q4/-/W");
     // Board b = positionToBoard("K1R5/PP5P/8/8/Q2r3k/7b/6p1/1r1q4/-/W");
     // Board b = positionToBoard("K1R5/PP5P/7P/7P/Q213k/7b/5np1/1r1q4/-/W");
 
-    std::cout << boardToStr(a) << std::endl;
 
     // isInCheckResult r = isInCheck(b.blackPieces, b.whitePieces, false);
 
-    auto start_time = std::chrono::high_resolution_clock::now();
     // std::cout << "White starts: " << traverse(b, 4) << std::endl;
     // b.isWhite = false;
     // for (int i=0; i<10000000; i++) {
     //     auto moves = generateMoves(b);
     // }
-    std::cout << "Depth 1: " << traverse(a, 1) << std::endl;
-    std::cout << "Depth 2: " << traverse(a, 2) << std::endl;
-    std::cout << "Depth 3: " << traverse(a, 3) << std::endl;
-    std::cout << "Depth 4: " << traverse(a, 4) << std::endl;
-    std::cout << "Depth 5: " << traverse(a, 5) << std::endl;
-    std::cout << "Depth 6: " << traverse(a, 6) << std::endl;
+    // std::cout << "Depth 1: " << traverse(a, 1) << std::endl;
+    // std::cout << "Depth 2: " << traverse(a, 2) << std::endl;
+    // std::cout << "Depth 3: " << traverse(a, 3) << std::endl;
+    // std::cout << "Depth 4: " << traverse(a, 4) << std::endl;
+    // std::cout << "Depth 5: " << traverse(a, 5) << std::endl;
+    // std::cout << "Depth 6: " << traverse(a, 6) << std::endl;
     auto end_time = std::chrono::high_resolution_clock::now();
 
     // auto moves = generateMoves(a);
