@@ -1,17 +1,9 @@
-#include "display.cpp"
-#include <iostream>
+#include <vector>
+#include <array>
 #include <fstream>
 #include <string>
-#include <iomanip>
 
-Squares reachableNotBlocked(Squares reachableIfNotBlocked, Squares occupied, uint64_t pieceIndex) {
-    BitLoop(reachableIfNotBlocked & occupied) {
-        reachableIfNotBlocked &= attacking[pieceIndex][bitFromSquare(temp)];
-    }
-    return reachableIfNotBlocked;
-}
-
-std::array<std::vector<int>,64> bitpositions = { 
+std::array<std::vector<int>,64> rookpositions = { 
 std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 40, 48, 56}),
 std::vector<int>({0, 2, 3, 4, 5, 6, 7, 9, 17, 25, 33, 41, 49, 57}),
 std::vector<int>({0, 1, 3, 4, 5, 6, 7, 10, 18, 26, 34, 42, 50, 58}),
@@ -78,7 +70,7 @@ std::vector<int>({6, 14, 22, 30, 38, 46, 54, 56, 57, 58, 59, 60, 61, 63}),
 std::vector<int>({7, 15, 23, 31, 39, 47, 55, 56, 57, 58, 59, 60, 61, 62})
 };
 
-std::array<std::vector<int>,64> bishopspositions = {
+std::array<std::vector<int>,64> bishoppositions = {
 std::vector<int>({9, 18, 27, 36, 45, 54, 63}),
 std::vector<int>({8, 10, 19, 28, 37, 46, 55}),
 std::vector<int>({9, 11, 16, 20, 29, 38, 47}),
@@ -145,31 +137,23 @@ std::vector<int>({8, 17, 26, 35, 44, 53, 55}),
 std::vector<int>({0, 9, 18, 27, 36, 45, 54}),
 };
 
-uint64_t pext_inverse(uint64_t values, uint64_t position) {
-    uint64_t res = 0;
+struct SliderLookup {
+    std::array<uint64_t *, 64> table;
 
-    for (auto id : bishopspositions[position]) {
-        res |= (values & 1ULL) << id;
-        values >>=1;
-    }
+    SliderLookup(std::string filename, std::array<std::vector<int>,64> positions) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file) throw std::runtime_error("File IO error");
 
-    return res;
-}
-
-int main() {
-
-    std::string filename = "bishopLookup";
-    std::ofstream file(filename, std::ios::binary);
-
-    if (!file) throw std::runtime_error("File IO error");
-    for (int i=0; i<64; i++) {
-        std::cout << bishopspositions[i].size() << std::endl;
-        for (int position = 0; position<(1<<bishopspositions[i].size()); position++) {
-            auto res = reachableNotBlocked(bishopMoves[i], pext_inverse(position, i), i);
-            file.write(reinterpret_cast<const char*>(&res), sizeof(res));
+        for (int i=0; i<64; i++) {
+            uint64_t sizeinbytes = (1<<positions[i].size()) * sizeof(uint64_t);
+            table[i] = (uint64_t *) malloc(sizeinbytes);
+            file.read(reinterpret_cast<char*>(table[i]), sizeinbytes); 
         }
+
+        file.close();
     }
 
-    file.close();
-    return 0;
-}
+    ~SliderLookup() {
+        for (int i=0; i<64; i++) free(table[i]);
+    }
+};

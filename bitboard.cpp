@@ -1,6 +1,10 @@
 #include "display.cpp"
+#include "loadSliderLookup.cpp"
 
 #include <chrono>
+
+SliderLookup bishopLookup("./bishopLookup", bishoppositions);
+SliderLookup rookLookup("./rookLookup", rookpositions);
 
 Squares occupied(const Pieces &pieces) {
     return (pieces.pawns|pieces.rooks|pieces.bishops|pieces.knights|pieces.queens|pieces.king);
@@ -11,6 +15,14 @@ Squares reachableNotBlocked(Squares reachableIfNotBlocked, Squares occupied, uin
         reachableIfNotBlocked &= attacking[pieceIndex][bitFromSquare(temp)];
     }
     return reachableIfNotBlocked;
+}
+
+Squares reachableNotBlockedBishop(Squares reachableIfNotBlocked, Squares occupied, uint64_t pieceIndex) {
+    return bishopLookup.table[pieceIndex][_pext_u64(occupied, reachableIfNotBlocked)];
+}
+
+Squares reachableNotBlockedRook(Squares reachableIfNotBlocked, Squares occupied, uint64_t pieceIndex) {
+    return rookLookup.table[pieceIndex][_pext_u64(occupied, reachableIfNotBlocked)];
 }
 
 Squares Seen(const Pieces &selfPieces, const Pieces &enemyPieces, bool isWhite) {
@@ -740,13 +752,16 @@ int main(void) {
 
     std::cout << boardToStr(a) << std::endl;
 
+    display_int64(bishopLookup.table[12][0b11011101]);
+    display_int64(bishopLookup.table[12][0b11011101]);
+
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    // std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
-    // std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
-    // std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
-    // std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
-    // std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
+    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
+    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
+    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
+    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
+    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
     // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
     // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
     // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
@@ -771,13 +786,13 @@ int main(void) {
     // std::cout << "Depth 6: " << traverse(a, 6) << std::endl;
     auto end_time = std::chrono::high_resolution_clock::now();
 
-    auto moves = generateMoves(a);
-    for (auto pos : moves) {
-        std::cout << boardToStr(pos) << std::endl;
-        // std::cout << traverse(pos, 1) << std::endl;
-    }
-    std::cout << std::endl;
-    std::cout << moves.size() << std::endl;
+    // auto moves = generateMoves(a);
+    // for (auto pos : moves) {
+    //     std::cout << boardToStr(pos) << std::endl;
+    //     // std::cout << traverse(pos, 1) << std::endl;
+    // }
+    // std::cout << std::endl;
+    // std::cout << moves.size() << std::endl;
     
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
     std::cout << "Execution time: " << duration.count() << " microseconds" << std::endl;
