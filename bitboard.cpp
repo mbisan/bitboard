@@ -492,12 +492,39 @@ std::vector<Board> generateMoves(const Board board) {
         BitLoop2(reachable) {
             Squares finalsquare = _blsi_u64(temp2);
             Pieces enemyPiecesNew = removePiece(enemy, finalsquare);
-            selfPiecesNew.pawns ^= finalsquare;
 
-            if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
-            else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+            if (finalsquare & pawnEndFile(board.isWhite)) { // pawn promotion
+                // promote to queen
+                selfPiecesNew.queens ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.queens ^= finalsquare;
 
-            selfPiecesNew.pawns ^= finalsquare;
+                // promote to rook
+                selfPiecesNew.rooks ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.rooks ^= finalsquare;
+
+                // promote to bishop
+                selfPiecesNew.bishops ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.bishops ^= finalsquare;
+
+                // promote to knight
+                selfPiecesNew.knights ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.knights ^= finalsquare;
+            } else {
+                selfPiecesNew.pawns ^= finalsquare;
+
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+
+                selfPiecesNew.pawns ^= finalsquare;
+            }
         }
     }
 
@@ -554,12 +581,39 @@ std::vector<Board> generateMoves(const Board board) {
         BitLoop2(reachable) {
             Squares finalsquare = _blsi_u64(temp2);
             Pieces enemyPiecesNew = removePiece(enemy, finalsquare);
-            selfPiecesNew.pawns ^= finalsquare;
 
-            if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
-            else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+            if (finalsquare & pawnEndFile(board.isWhite)) { // pawn promotion
+                // promote to queen
+                selfPiecesNew.queens ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.queens ^= finalsquare;
 
-            selfPiecesNew.pawns ^= finalsquare;
+                // promote to rook
+                selfPiecesNew.rooks ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.rooks ^= finalsquare;
+
+                // promote to bishop
+                selfPiecesNew.bishops ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.bishops ^= finalsquare;
+
+                // promote to knight
+                selfPiecesNew.knights ^= finalsquare;
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+                selfPiecesNew.knights ^= finalsquare;
+            } else {
+                selfPiecesNew.pawns ^= finalsquare;
+
+                if (board.isWhite) newMoves.push_back({selfPiecesNew, enemyPiecesNew, !board.isWhite, (uint8_t) 0});
+                else newMoves.push_back({enemyPiecesNew, selfPiecesNew, !board.isWhite, (uint8_t) 0});
+
+                selfPiecesNew.pawns ^= finalsquare;
+            }
         }
     }
 
@@ -629,8 +683,6 @@ std::vector<Board> generateMoves(const Board board) {
         }
     }
 
-    // TODO promotion
-
     if (newMoves.size() == 0) {
         if (board.isWhite) newMoves.push_back({self, enemy, board.isWhite, (uint8_t) (r.checkCount ? 0b1 : 0b10)});
         else newMoves.push_back({enemy, self, board.isWhite, (uint8_t) (r.checkCount ? 0b1 : 0b10)});
@@ -676,8 +728,8 @@ int main(void) {
     // a.isWhite = false; a.whitePieces.castles = 0; a.blackPieces.castles = 0;
 
     // b8d8
-    Board a = positionToBoard("4RK2/8/5P11/2B1N3/2p5/6r1/p4qp1/2Qr2k1/-/W"); // r5k1/pR3pp1/2p3r1/8/4N3/5P1Q/q3B3/4RK2 b - - 2 29
-    a.isWhite = false; a.whitePieces.castles = 0; a.blackPieces.castles = 0;
+    Board a = positionToBoard("4RK2/8/5P11/2B1N3/2p5/6r1/P4qp1/2Qr2k1/-/W"); // r5k1/pR3pp1/2p3r1/8/4N3/5P1Q/q3B3/4RK2 b - - 2 29
+    a.isWhite = true; a.whitePieces.castles = 0; a.blackPieces.castles = 0;
 
     // Board a = positionToBoard("4RK2/q3B3/5P1Q/4N3/2p5/213r1/pR3pp1/r5k1/-/W"); // r5k1/pR3pp1/2p3r1/8/4N3/5P1Q/q3B3/4RK2 b - - 2 29
     // a.isWhite = true; a.whitePieces.castles = 0; a.blackPieces.castles = 0;
@@ -719,13 +771,13 @@ int main(void) {
     // std::cout << "Depth 6: " << traverse(a, 6) << std::endl;
     auto end_time = std::chrono::high_resolution_clock::now();
 
-    // auto moves = generateMoves(a);
-    // for (auto pos : moves) {
-    //     std::cout << boardToStr(pos) << std::endl;
-    //     // std::cout << traverse(pos, 1) << std::endl;
-    // }
-    // std::cout << std::endl;
-    // std::cout << moves.size() << std::endl;
+    auto moves = generateMoves(a);
+    for (auto pos : moves) {
+        std::cout << boardToStr(pos) << std::endl;
+        // std::cout << traverse(pos, 1) << std::endl;
+    }
+    std::cout << std::endl;
+    std::cout << moves.size() << std::endl;
     
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
     std::cout << "Execution time: " << duration.count() << " microseconds" << std::endl;

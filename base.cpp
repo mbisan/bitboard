@@ -14,6 +14,7 @@
 #define pawnStartFile(isWhite) (isWhite ? 0x000000000000ff00ULL : 0x00ff000000000000ULL)
 #define startFile(isWhite) (isWhite ? 0x00000000000000ffULL : 0xff00000000000000ULL)
 #define pawnEP(isWhite) (isWhite ? 0x000000ff00000000ULL : 0x00000000ff000000ULL)
+#define pawnEndFile(isWhite) (isWhite ? 0xff00000000000000ULL : 0x0000000000000ffULL)
 
 #define castleLcheck(isWhite) (isWhite ? 0x000000000000000cULL : 0x0c00000000000000ULL)
 #define castleLocc(isWhite) (isWhite ? 0x000000000000000eULL : 0x0e00000000000000ULL)
