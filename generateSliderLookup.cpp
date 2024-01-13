@@ -98,16 +98,16 @@ int main() {
 
     display_int64(_pext_u64(pext_inverse(pos, 0), rookMoves[0] & ~kingMoves[0]));
     std::cout << std::hex << 1021840533 << std::endl;
-    std::string filename = "lookup";
+    // std::string filename = "lookup";
 
     for (int i=0; i<64; i++) {
-        std::ofstream file(filename + std::to_string(i), std::ios::binary);
-        if (!file) throw std::runtime_error("File IO error");
+        std::cout << "{" <<std::endl;
         for (int position = 0; position<(1<<bitpositions[i].size()); position++) {
             auto res = reachableNotBlocked(rookMoves[i], pext_inverse(position, i), i);
-            file.write(reinterpret_cast<const char*>(&res), 8);
+
+            std::cout << "0x" << std::hex << res << ", ";
         }
-        file.close();
+        std::cout << "}," <<std::endl;
     }
 
     return 0;
