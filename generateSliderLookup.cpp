@@ -11,8 +11,7 @@ Squares reachableNotBlocked(Squares reachableIfNotBlocked, Squares occupied, uin
     return reachableIfNotBlocked;
 }
 
-std::array<std::vector<int>,65> bitpositions = { 
-std::vector<int>({2, 3, 4, 5, 6, 7, 16, 24, 32, 40, 48, 56}),
+std::array<std::vector<int>,64> bitpositions = { 
 std::vector<int>({1, 2, 3, 4, 5, 6, 7, 8, 16, 24, 32, 40, 48, 56}),
 std::vector<int>({0, 2, 3, 4, 5, 6, 7, 9, 17, 25, 33, 41, 49, 57}),
 std::vector<int>({0, 1, 3, 4, 5, 6, 7, 10, 18, 26, 34, 42, 50, 58}),
@@ -92,23 +91,18 @@ uint64_t pext_inverse(uint64_t values, uint64_t position) {
 
 int main() {
 
-    uint64_t pos = 0b100101101110;
+    std::string filename = "rookLookup";
+    std::ofstream file(filename, std::ios::binary);
 
-    display_int64(pext_inverse(pos, 0));
-
-    display_int64(_pext_u64(pext_inverse(pos, 0), rookMoves[0] & ~kingMoves[0]));
-    std::cout << std::hex << 1021840533 << std::endl;
-    // std::string filename = "lookup";
-
+    if (!file) throw std::runtime_error("File IO error");
     for (int i=0; i<64; i++) {
-        std::cout << "{" <<std::endl;
+        std::cout << bitpositions[i].size() << std::endl;
         for (int position = 0; position<(1<<bitpositions[i].size()); position++) {
             auto res = reachableNotBlocked(rookMoves[i], pext_inverse(position, i), i);
-
-            std::cout << "0x" << std::hex << res << ", ";
+            file.write(reinterpret_cast<const char*>(&res), sizeof(res));
         }
-        std::cout << "}," <<std::endl;
     }
 
+    file.close();
     return 0;
 }
