@@ -29,14 +29,6 @@
 #define BitLoop2(x) for(uint64_t temp2=x; temp2; temp2=_blsr_u64(temp2))
 #define bitFromSquare(x) _tzcnt_u64(x)
 
-struct isInCheckResult {
-    int checkCount;
-    Squares checkMask;
-    Squares pinmaskHV;
-    Squares pinmaskD;
-    Squares enpassantpin;
-};
-
 struct Pieces {
     Squares pawns = 0;
     Squares rooks = 0;
