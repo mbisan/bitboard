@@ -36,6 +36,42 @@
 			"dependsOn": "C++: g++ compile",
 			"group": "build",
 			"detail": "run output"
+		},
+		{
+			"type": "cppbuild",
+			"label": "slidergenerate",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-std=c++2a",
+				"-march=native",
+				"-O3",
+				"-g",
+				"/home/martin/bitboard/generateSliderLookup.cpp",
+				"-o",
+				"/home/martin/bitboard/generateSliderLookup"
+			],
+			"options": {
+				"cwd": "/home/martin/bitboard/"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compilador: /usr/bin/g++"
+		},
+		{
+			"type": "shell",
+			"label": "run slider lookup generate",
+			"command": "/home/martin/bitboard/generateSliderLookup",
+			"args": [
+			],
+			"options": {
+				"cwd": "/home/martin/bitboard/"
+			},
+			"dependsOn": "slidergenerate",
+			"group": "build",
+			"detail": "run output"
 		}
 	]
 }

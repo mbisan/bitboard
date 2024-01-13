@@ -728,7 +728,7 @@ int main(void) {
     // a.isWhite = false; a.whitePieces.castles = 0; a.blackPieces.castles = 0;
 
     // b8d8
-    Board a = positionToBoard("4RK2/8/5P11/2B1N3/2p5/6r1/P4qp1/2Qr2k1/-/W"); // r5k1/pR3pp1/2p3r1/8/4N3/5P1Q/q3B3/4RK2 b - - 2 29
+    Board a = positionToBoard("4RK2/8/5P2/2B1N3/2p5/6r1/P4qp1/2Qr2k1/-/W"); // r5k1/pR3pp1/2p3r1/8/4N3/5P1Q/q3B3/4RK2 b - - 2 29
     a.isWhite = true; a.whitePieces.castles = 0; a.blackPieces.castles = 0;
 
     // Board a = positionToBoard("4RK2/q3B3/5P1Q/4N3/2p5/213r1/pR3pp1/r5k1/-/W"); // r5k1/pR3pp1/2p3r1/8/4N3/5P1Q/q3B3/4RK2 b - - 2 29
@@ -738,17 +738,17 @@ int main(void) {
     // // Board b = positionToBoard("4K3/3p4/8/8/8/8/8/k7/-/W");
     b.isWhite = true;
 
-    std::cout << boardToStr(b) << std::endl;
+    std::cout << boardToStr(a) << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
-    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
-    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
-    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
-    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
-    std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
-    std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
+    // std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
+    // std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
+    // std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
+    // std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
+    // std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
+    // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
+    // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
     // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
     // enpassant pinned
     // Board b = positionToBoard("K1R5/P15P/8/QPpP3k/2P5/7b/6p1/1r1q4/-/W");
