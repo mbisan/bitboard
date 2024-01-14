@@ -10,7 +10,6 @@
 				"-std=c++2a",
 				"-march=native",
 				"-O3",
-				"-pg",
 				"-g",
 				"/home/martin/bitboard/bitboard.cpp",
 				"-o",
