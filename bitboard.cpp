@@ -129,6 +129,439 @@ Pieces removePiece(Pieces pieces, Squares removepositions) {
     return pieces;
 }
 
+struct move {
+    uint16_t movedPiece; 
+    // 0b000000_000000_000_0 
+    // (fist bit to determine if this number is considered) (next 6 the initial position of the piece) (next 3 to determine piece type)
+    // piece types: 1-King 2-Queen 3-Rook 4-Bishop 5-Knight 6-Pawn 0-No piece moved
+    uint16_t movedPiece2; // for castles and enpassant
+    uint8_t enpassant; // new enpassant status
+    uint8_t castles; // new castles status
+};
+
+Board applyMove(Board board, const move &m) {
+
+    Pieces *self, *enemy;
+    if (board.isWhite) {
+        self = &board.whitePieces;
+        enemy = &board.blackPieces;
+    } else {
+        enemy = &board.whitePieces;
+        self = &board.blackPieces;
+    }
+
+    self->enPassant = m.enpassant;
+    self->castles = m.castles;
+
+    board.isWhite = !board.isWhite;
+    Squares finalpos = positionToBit[m.movedPiece >> 10];
+    Squares nfinalpos = ~positionToBit[m.movedPiece >> 10];
+
+    switch ((m.movedPiece & 0b0000000000001110U) >> 1)
+    {
+    case 0U:
+        if (m.castles & 0b00110000U) {board.gameResult = 0b10U; return board;} // checkmate
+        else if (m.castles & 0b11000000U) {board.gameResult = 0b01U; return board;} // draw
+        break;
+    case 1U: // king move
+        self->king ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+
+        // handle casles
+        if (m.movedPiece2) {
+            self->rooks ^= positionToBit[(m.movedPiece2 & 0b0000001111110000U) >> 4] | positionToBit[m.movedPiece2 >> 10];
+        }
+        break;
+    case 2U: // queen move
+        self->queens ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+        break;
+    case 3U: // rook move
+        self->rooks ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+        break;
+    case 4U: // bishop move
+        self->bishops ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+        break;
+    case 5U: // knight move
+        self->knights ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+        break;
+    case 6U: // pawn move
+        self->pawns ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+
+        // handle enpassant
+        if (m.movedPiece2) {
+            enemy->pawns &= ~positionToBit[(m.movedPiece2 & 0b0000001111110000U) >> 4];
+        }
+        break;
+    case 7U: // promotion
+        self->pawns ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4];
+        enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
+        enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
+
+        switch ((m.movedPiece2 & 0b0000000000001110U) >> 1)
+        {
+        case 2U:
+            self->queens ^= positionToBit[m.movedPiece >> 10];
+            break;
+        case 3U:
+            self->rooks ^= positionToBit[m.movedPiece >> 10];
+            break;
+        case 4U:
+            self->bishops ^= positionToBit[m.movedPiece >> 10];
+            break;
+        case 5U:
+            self->knights ^= positionToBit[m.movedPiece >> 10];
+            break;
+        default:
+            break;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return board;
+}
+
+uint16_t createPieceMove(uint8_t pieceType, uint8_t initSquare, uint8_t finalSquare, bool isWhite) { // takes index as input
+    return (pieceType << 1) | (initSquare << 4) | (finalSquare << 10) | (isWhite ? 1U : 0U);
+}
+
+template<bool isWhite>
+std::vector<move> generateMovesShort(const Board &board) {
+    std::vector<move> newMoves;
+
+    Pieces self, enemy;
+
+    if (isWhite) {
+        self = board.whitePieces;
+        enemy = board.blackPieces;
+    } else {
+        self = board.blackPieces;
+        enemy = board.whitePieces;
+    }
+
+    uint8_t enPassant = enemy.enPassant;
+
+    // generate pinmask and checkmask
+    isInCheckResult r = isInCheck(self, enemy, isWhite); 
+    Squares pinmask = r.pinmaskD | r.pinmaskHV;
+    Squares notSelf = ~r.selfSquares;
+    uint64_t kingIndex = bitFromSquare(self.king);
+
+    if (r.checkCount > 1) { // double check forces king to move
+        // king can only move to squares not seen by enemy and not occupied by enemy pieces
+        Squares kingReachable = kingMoves[kingIndex] & notSelf & ~r.enemySeen & ~r.kingNotReachable;
+
+        BitLoop(kingReachable) {            
+            newMoves.push_back({createPieceMove(1, kingIndex, bitFromSquare(temp), isWhite), 0U, 0U, 0U});
+        }
+
+        if (newMoves.size() == 0) newMoves.push_back({0U, 0U, 0U, 0b00110000U}); // checkmate
+
+        return newMoves;
+    } 
+    if (r.checkCount == 0) r.checkMask = 0xffffffffffffffff; // if no checks are given, then all squares are available for all pieces
+
+    Pieces selfPiecesNew;  
+
+    // generate king moves
+    Squares kingReachable = kingMoves[kingIndex] & notSelf & ~r.enemySeen & ~r.kingNotReachable;
+    BitLoop(kingReachable) {
+        newMoves.push_back({createPieceMove(1, kingIndex, bitFromSquare(temp), isWhite), 0U, 0U, 0U});
+    }
+
+    // generate rook/queen moves
+    Squares notSelf_n_checkMask = notSelf & r.checkMask;
+    
+    // non-pinned rooks
+    BitLoop(self.rooks & ~pinmask) {
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;
+        
+        uint8_t castles_result = self.castles;
+        if (pieceIndex == (isWhite ? 0 : 56)) castles_result &= 0b10; // moving L Rook so cannot L castle
+        if (pieceIndex == (isWhite ? 7 : 63)) castles_result &= 0b01; // moving R Rook so cannot R castle
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(3, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, castles_result});
+        }
+    }
+
+    // non-pinned queens
+    BitLoop(self.queens & ~pinmask) {
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;
+        
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    // pinned rooks
+    BitLoop(self.rooks & r.pinmaskHV) { // D-pinned rooks cannot move
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
+        
+        uint8_t castles_result = self.castles;
+        if (pieceIndex == (isWhite ? 0 : 56)) castles_result &= 0b10; // moving L Rook so cannot L castle
+        if (pieceIndex == (isWhite ? 7 : 63)) castles_result &= 0b01; // moving R Rook so cannot R castle
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(3, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, castles_result});
+        }
+    }
+
+    // pinned queens
+    BitLoop(self.queens & r.pinmaskHV) {
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
+        
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    // generate bishop/queen moves
+    
+    // non-pinned bishops
+    BitLoop(self.bishops & ~pinmask) {
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(4, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    // non-pinned queens
+    BitLoop(self.queens & ~pinmask) {
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    // pinned bishops
+    BitLoop((self.bishops) & r.pinmaskD) { // HV-pinned bishop cannot move
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(4, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    // pinned queens
+    BitLoop(self.queens & r.pinmaskD) {
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    // generate knight moves
+    BitLoop(self.knights & ~pinmask) { // pinned knight cannot move, so only consider unpinned knights
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = knightMoves[pieceIndex] & notSelf_n_checkMask;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(5, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    Squares enemy_n_checkMask = r.checkMask & r.enemySquares;
+
+    // PAWNS
+    BitLoop(self.pawns & pinmask & pawnStartFile(isWhite)) { // starting file pinned pawns
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = 0;
+
+        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(isWhite)] & r.pinmaskHV & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
+
+            if (positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)] & ~r.occupied & r.pinmaskHV & r.checkMask) { // i.e. 2 squares in front of pawn not occupied
+                newMoves.push_back(
+                    {createPieceMove(6, pieceIndex, pieceIndex + 2 * pawnAdvace(isWhite), isWhite), 0U, 
+                    (uint8_t)(positionToBit[pieceIndex] >> (isWhite ? 8 : 48)) , self.castles});
+            }
+        }
+        reachable |= pawnAttacks(isWhite)[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(6, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    BitLoop(self.pawns & pinmask & ~pawnStartFile(isWhite)) { // pinned pawns not in starting file
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = 0;
+        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(isWhite)] & r.pinmaskHV & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
+        }
+        reachable |= pawnAttacks(isWhite)[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
+
+        BitLoop2(reachable) {
+            Squares finalIndex = bitFromSquare(temp2);
+
+            if (positionToBit[finalIndex] & pawnEndFile(isWhite)) { // pawn promotion
+                newMoves.push_back( // promote to queen
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(2, 0, finalIndex, isWhite), 0U, self.castles});
+
+                newMoves.push_back( // promote to rook
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(3, 0, finalIndex, isWhite), 0U, self.castles});
+
+                newMoves.push_back( // promote to bishop
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(4, 0, finalIndex, isWhite), 0U, self.castles});
+
+                newMoves.push_back( // promote to knight
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(5, 0, finalIndex, isWhite), 0U, self.castles});
+            } else {
+                newMoves.push_back({createPieceMove(6, pieceIndex, finalIndex, isWhite), 0U, 0U, self.castles});
+            }
+        }
+    }
+
+    BitLoop(self.pawns & ~pinmask & pawnStartFile(isWhite)) { // starting file NON - pinned pawns
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = 0;
+
+        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(isWhite)] & r.checkMask; // i.e. the newposition is available only if it stays in the pinmask
+
+            if (positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)] & ~r.occupied & r.checkMask) { // i.e. 2 squares in front of pawn not occupied
+                newMoves.push_back(
+                    {createPieceMove(6, pieceIndex, pieceIndex + 2 * pawnAdvace(isWhite), isWhite), 0U, 
+                    (uint8_t)(positionToBit[pieceIndex] >> (isWhite ? 8 : 48)), self.castles});
+            }
+        }
+        reachable |= pawnAttacks(isWhite)[pieceIndex] & enemy_n_checkMask;
+
+        BitLoop2(reachable) {
+            newMoves.push_back({createPieceMove(6, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+        }
+    }
+
+    BitLoop(self.pawns & ~pinmask & ~pawnStartFile(isWhite)) { // non pinned pawns not in starting file
+        uint64_t pieceIndex = bitFromSquare(temp);
+        Squares reachable = 0;
+        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied) { // i.e. the square in front of the pawn is not occupied
+            reachable |= positionToBit[pieceIndex + pawnAdvace(isWhite)] & r.checkMask;
+        }
+        reachable |= pawnAttacks(isWhite)[pieceIndex] & enemy_n_checkMask;
+
+        BitLoop2(reachable) {
+            Squares finalIndex = bitFromSquare(temp2);
+
+            if (positionToBit[finalIndex] & pawnEndFile(isWhite)) { // pawn promotion
+                newMoves.push_back( // promote to queen
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(2, 0, finalIndex, isWhite), 0U, self.castles});
+
+                newMoves.push_back( // promote to rook
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(3, 0, finalIndex, isWhite), 0U, self.castles});
+
+                newMoves.push_back( // promote to bishop
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(4, 0, finalIndex, isWhite), 0U, self.castles});
+
+                newMoves.push_back( // promote to knight
+                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(5, 0, finalIndex, isWhite), 0U, self.castles});
+            } else {
+                newMoves.push_back({createPieceMove(6, pieceIndex, finalIndex, isWhite), 0U, 0U, self.castles});
+            }
+        }
+    }
+
+    if (enPassant) { // there is an enpassant pawn for the enemy
+        Squares enemyEnPassant = (Squares) enPassant << (isWhite ? 32 : 24);
+        BitLoop(self.pawns & pawnEP(isWhite) & ~r.pinmaskHV & ~r.enpassantpin) { // enpassant NON - ep-pinned pawns, non HV pinned
+            uint64_t pieceIndex = bitFromSquare(temp);
+
+            if (positionToBit[pieceIndex + 1] & enemyEnPassant) {
+                // check if the taken piece is not D pinned
+                if (enemyEnPassant & r.pinmaskD) continue;
+                // self piece is part of pinD -> end square must be part of pinD
+                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(isWhite) + 1] & r.pinmaskD)) continue;
+
+                newMoves.push_back( // enpassant capture
+                    {createPieceMove(6, pieceIndex, pieceIndex + pawnAdvace(isWhite) + 1, isWhite), createPieceMove(6, pieceIndex + 1, 0, !isWhite), 0U, self.castles});
+            } 
+            if (positionToBit[pieceIndex - 1] & enemyEnPassant) {
+                // check if the taken piece is not D pinned
+                if (enemyEnPassant & r.pinmaskD) continue;
+                // self piece is part of pinD -> end square must be part of pinD
+                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(isWhite) - 1] & r.pinmaskD)) continue;
+
+                newMoves.push_back( // enpassant capture
+                    {createPieceMove(6, pieceIndex, pieceIndex + pawnAdvace(isWhite) - 1, isWhite), createPieceMove(6, pieceIndex - 1, 0, !isWhite), 0U, self.castles});
+            }
+        }
+    }
+
+    if (self.castles & 1U && !r.checkCount) { // castles left -> king index is 4 and L rook 0 or 60 and 56 
+        if (!(r.occupied & castleLocc(isWhite)) && !(castleLcheck(isWhite) & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
+            newMoves.push_back( // castles left
+                {createPieceMove(1, isWhite ? 4 : 60, isWhite ? 2 : 58, isWhite), createPieceMove(3, isWhite ? 0 : 56, isWhite ? 3 : 59, isWhite), 0U, 0U});
+        }
+    }
+
+    if (self.castles & 2U && !r.checkCount) { // castles right
+        if (!(r.occupied & castleRcheck(isWhite)) && !(castleRcheck(isWhite) & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
+            newMoves.push_back( // castles right
+                {createPieceMove(1, isWhite ? 4 : 60, isWhite ? 6 : 62, isWhite), createPieceMove(3, isWhite ? 7 : 63, isWhite ? 4 : 61, isWhite), 0U, 0U});
+        }
+    }
+
+    if (newMoves.size() == 0) {
+        newMoves.push_back({0, 0, 0, (r.checkCount ? (uint8_t) 0b00110000U : (uint8_t)0b11000000U)}); // checkmate or draw
+        return newMoves;
+    }
+    return newMoves;
+}
+
+uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
+    if (depth==1) {
+        if (initialPosition.isWhite) return generateMovesShort<true>(initialPosition).size();
+        else return generateMovesShort<false>(initialPosition).size();
+    }
+
+    uint64_t initialMoveCount = 0;
+
+    if (initialPosition.isWhite) {
+        auto moves = generateMovesShort<true>(initialPosition);
+
+        for (auto &m : moves) {
+            // std::cout << boardToStr(position) << std::endl;
+            if (!(m.castles & 0xf0)) initialMoveCount += traverseWithMoves(applyMove(initialPosition, m), depth-1);
+        }
+
+        return initialMoveCount;
+    }
+    else {
+        auto moves = generateMovesShort<false>(initialPosition);
+
+        for (auto &m : moves) {
+            // std::cout << boardToStr(position) << std::endl;
+            if (!(m.castles & 0xf0)) initialMoveCount += traverseWithMoves(applyMove(initialPosition, m), depth-1);
+        }
+
+        return initialMoveCount;
+    }
+}
+
 template<bool isWhite>
 std::vector<Board> generateMoves(const Board &board) {
     std::vector<Board> newMoves;
@@ -690,17 +1123,21 @@ int main(void) {
     // // Board b = positionToBoard("4K3/3p4/8/8/8/8/8/k7/-/W");
     b.isWhite = true;
 
-    std::cout << boardToStr(a) << std::endl;
+    // Board b = positionToBoard("RNBQKBNR/1PPPPPPP/8/8/P16/n7/pppppppp/r1bqkbnr/-/W");
+    // // // Board b = positionToBoard("4K3/3p4/8/8/8/8/8/k7/-/W");
+    // b.isWhite = false; //b.blackPieces.enPassant = 0b00000010;
+
+    std::cout << boardToStr(b) << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
-    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
-    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
-    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
-    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
-    std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
-    std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
+    std::cout << "Depth 1: " << (unsigned long) traverseWithMoves(b, 1) << std::endl;
+    std::cout << "Depth 2: " << (unsigned long) traverseWithMoves(b, 2) << std::endl;
+    std::cout << "Depth 3: " << (unsigned long) traverseWithMoves(b, 3) << std::endl;
+    std::cout << "Depth 4: " << (unsigned long) traverseWithMoves(b, 4) << std::endl;
+    std::cout << "Depth 5: " << (unsigned long) traverseWithMoves(b, 5) << std::endl;
+    std::cout << "Depth 6: " << (unsigned long) traverseWithMoves(b, 6) << std::endl;
+    std::cout << "Depth 7: " << (unsigned long) traverseWithMoves(b, 7) << std::endl;
     // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
     // enpassant pinned
     // Board b = positionToBoard("K1R5/P15P/8/QPpP3k/2P5/7b/6p1/1r1q4/-/W");
@@ -723,12 +1160,20 @@ int main(void) {
     // std::cout << "Depth 6: " << traverse(a, 6) << std::endl;
     auto end_time = std::chrono::high_resolution_clock::now();
 
-    // auto moves = generateMoves(a);
+    // auto moves = generateMovesShort<false>(b);
+    // std::cout << moves[6].movedPiece << std::endl;
+    // std::cout << (int)moves[6].enpassant << std::endl;
+    // // auto b2 = applyMove(b, moves[0]);
+    // // std::cout << boardToStr(b2) << std::endl;
+    // // if (!b2.isWhite) std::cout << "Black" << std::endl;
+    // // auto moves2 = generateMovesShort<false>(b2);
+
     // for (auto pos : moves) {
-    //     std::cout << boardToStr(pos) << std::endl;
-    //     // std::cout << traverse(pos, 1) << std::endl;
+    //     std::cout << traverseWithMoves(applyMove(b, pos), 1) << std::endl;
+    //     std::cout << boardToStr(applyMove(b, pos)) << std::endl;
+    //     // std::cout << (int)((pos.movedPiece & 0b1110)>>1) << " " << (int)((pos.movedPiece & 0b1111110000)>>4) << " " << (int)(pos.movedPiece>>10) << std::endl;
     // }
-    // std::cout << std::endl;
+    // // std::cout << std::endl;
     // std::cout << moves.size() << std::endl;
     
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);

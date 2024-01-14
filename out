@@ -1,0 +1,224 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  ms/call  ms/call  name    
+ 56.16      1.14     1.14  4892415     0.00     0.00  std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&)
+ 19.21      1.53     0.39 31861462     0.00     0.00  void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&)
+ 17.24      1.88     0.35        6    58.33   338.33  traverse(Board const&, int)
+  4.43      1.97     0.09   396168     0.00     0.00  std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&)
+  2.96      2.03     0.06  5288583     0.00     0.00  isInCheck(Pieces const&, Pieces const&, bool)
+  0.00      2.03     0.00      128     0.00     0.00  _init
+  0.00      2.03     0.00       37     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
+  0.00      2.03     0.00       12     0.00     0.00  cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00      2.03     0.00       12     0.00     0.00  frame_dummy
+  0.00      2.03     0.00        2     0.00     0.00  positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00      2.03     0.00        2     0.00     0.00  SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>)
+  0.00      2.03     0.00        2     0.00     0.00  std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&)
+  0.00      2.03     0.00        2     0.00     0.00  std::array<std::vector<int, std::allocator<int> >, 64ul>::~array()
+  0.00      2.03     0.00        1     0.00     0.00  boardToStr[abi:cxx11](Board const&)
+  0.00      2.03     0.00        1     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long)
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2022 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 4 byte(s) for 0.49% of 2.03 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]    100.0    0.00    2.03                 main [1]
+                0.35    1.68       6/6           traverse(Board const&, int) [2]
+                0.00    0.00      10/12          frame_dummy [7]
+                0.00    0.00       2/2           positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [16]
+                0.00    0.00       1/1           boardToStr[abi:cxx11](Board const&) [20]
+-----------------------------------------------
+                             129421113             traverse(Board const&, int) [2]
+                0.35    1.68       6/6           main [1]
+[2]    100.0    0.35    1.68       6+129421113 traverse(Board const&, int) [2]
+                1.14    0.42 4892415/4892415     std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
+                0.09    0.03  396168/396168      std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
+                             129421113             traverse(Board const&, int) [2]
+-----------------------------------------------
+                1.14    0.42 4892415/4892415     traverse(Board const&, int) [2]
+[3]     76.7    1.14    0.42 4892415         std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
+                0.36    0.00 29469666/31861462     void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&) [4]
+                0.06    0.00 4892415/5288583     isInCheck(Pieces const&, Pieces const&, bool) [6]
+-----------------------------------------------
+                0.03    0.00 2391796/31861462     std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
+                0.36    0.00 29469666/31861462     std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
+[4]     19.2    0.39    0.00 31861462         void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&) [4]
+-----------------------------------------------
+                0.09    0.03  396168/396168      traverse(Board const&, int) [2]
+[5]      6.1    0.09    0.03  396168         std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
+                0.03    0.00 2391796/31861462     void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&) [4]
+                0.00    0.00  396168/5288583     isInCheck(Pieces const&, Pieces const&, bool) [6]
+-----------------------------------------------
+                0.00    0.00  396168/5288583     std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
+                0.06    0.00 4892415/5288583     std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
+[6]      3.0    0.06    0.00 5288583         isInCheck(Pieces const&, Pieces const&, bool) [6]
+-----------------------------------------------
+                0.00    0.00       2/12          __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
+                0.00    0.00      10/12          main [1]
+[7]      0.0    0.00    0.00      12         frame_dummy [7]
+-----------------------------------------------
+                0.00    0.00     128/128         __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
+[13]     0.0    0.00    0.00     128         _init [13]
+-----------------------------------------------
+                0.00    0.00       1/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [21]
+                0.00    0.00      36/37          cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [15]
+[14]     0.0    0.00    0.00      37         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [14]
+-----------------------------------------------
+                0.00    0.00      12/12          boardToStr[abi:cxx11](Board const&) [20]
+[15]     0.0    0.00    0.00      12         cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [15]
+                0.00    0.00      36/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [14]
+-----------------------------------------------
+                0.00    0.00       2/2           main [1]
+[16]     0.0    0.00    0.00       2         positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [16]
+-----------------------------------------------
+                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
+[17]     0.0    0.00    0.00       2         SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [17]
+-----------------------------------------------
+                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
+[18]     0.0    0.00    0.00       2         std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [18]
+-----------------------------------------------
+                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
+[19]     0.0    0.00    0.00       2         std::array<std::vector<int, std::allocator<int> >, 64ul>::~array() [19]
+-----------------------------------------------
+                0.00    0.00       1/1           main [1]
+[20]     0.0    0.00    0.00       1         boardToStr[abi:cxx11](Board const&) [20]
+                0.00    0.00      12/12          cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [15]
+                0.00    0.00       1/1           std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [21]
+-----------------------------------------------
+                0.00    0.00       1/1           boardToStr[abi:cxx11](Board const&) [20]
+[21]     0.0    0.00    0.00       1         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [21]
+                0.00    0.00       1/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [14]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2022 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+  [20] boardToStr[abi:cxx11](Board const&) [2] traverse(Board const&, int) [4] void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&)
+  [15] cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [6] isInCheck(Pieces const&, Pieces const&, bool) [21] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long)
+   [3] std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [17] SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [14] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
+   [5] std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [18] std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [13] _init
+  [16] positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [19] std::array<std::vector<int, std::allocator<int> >, 64ul>::~array() [7] frame_dummy
