@@ -533,14 +533,8 @@ std::vector<move> generateMovesShort(const Board &board) {
 }
 
 uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
-    if (depth==1) {
-        if (initialPosition.isWhite) {
-            auto moves = generateMovesShort<true>(initialPosition);
-            return moves.size();
-        } else {
-            auto moves = generateMovesShort<false>(initialPosition);
-            return moves.size();
-        }
+    if (depth==0) {
+        return 1ULL;
     }
 
     uint64_t initialMoveCount = 0;
@@ -551,7 +545,7 @@ uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
         for (auto &m : moves) {
             // std::cout << boardToStr(position) << std::endl;
             if (!(m.castles & 0xf0)) initialMoveCount += traverseWithMoves(applyMove(initialPosition, m), depth-1);
-            else initialMoveCount++;
+            // else initialMoveCount++;
         }
 
         return initialMoveCount;
@@ -562,7 +556,7 @@ uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
         for (auto &m : moves) {
             // std::cout << boardToStr(position) << std::endl;
             if (!(m.castles & 0xf0)) initialMoveCount += traverseWithMoves(applyMove(initialPosition, m), depth-1);
-            else initialMoveCount++;
+            // else initialMoveCount++;
         }
 
         return initialMoveCount;
