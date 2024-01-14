@@ -534,8 +534,13 @@ std::vector<move> generateMovesShort(const Board &board) {
 
 uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
     if (depth==1) {
-        if (initialPosition.isWhite) return generateMovesShort<true>(initialPosition).size();
-        else return generateMovesShort<false>(initialPosition).size();
+        if (initialPosition.isWhite) {
+            auto moves = generateMovesShort<true>(initialPosition);
+            return moves.size();
+        } else {
+            auto moves = generateMovesShort<false>(initialPosition);
+            return moves.size();
+        }
     }
 
     uint64_t initialMoveCount = 0;
@@ -546,6 +551,7 @@ uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
         for (auto &m : moves) {
             // std::cout << boardToStr(position) << std::endl;
             if (!(m.castles & 0xf0)) initialMoveCount += traverseWithMoves(applyMove(initialPosition, m), depth-1);
+            else initialMoveCount++;
         }
 
         return initialMoveCount;
@@ -556,6 +562,7 @@ uint64_t traverseWithMoves(const Board &initialPosition, int depth) {
         for (auto &m : moves) {
             // std::cout << boardToStr(position) << std::endl;
             if (!(m.castles & 0xf0)) initialMoveCount += traverseWithMoves(applyMove(initialPosition, m), depth-1);
+            else initialMoveCount++;
         }
 
         return initialMoveCount;
@@ -1066,16 +1073,25 @@ std::vector<Board> generateMoves(const Board &board) {
 }
 
 uint64_t traverse(const Board &initialPosition, int depth) {
-    if (depth==0) return 1ULL;
+    if (depth==1) {
+        if (initialPosition.isWhite) {
+            auto moves = generateMoves<true>(initialPosition);
+            return moves.size();
+        } else {
+            auto moves = generateMoves<false>(initialPosition);
+            return moves.size();
+        }
+    }
 
     uint64_t initialMoveCount = 0;
 
     if (initialPosition.isWhite) {
         auto initialmoves = generateMoves<true>(initialPosition);
 
-        for (auto position : initialmoves) {
+        for (auto &position : initialmoves) {
             // std::cout << boardToStr(position) << std::endl;
             if (!position.gameResult) initialMoveCount += traverse(position, depth-1);
+            else initialMoveCount++;
         }
 
         return initialMoveCount;
@@ -1083,9 +1099,10 @@ uint64_t traverse(const Board &initialPosition, int depth) {
     else {
         auto initialmoves = generateMoves<false>(initialPosition);
 
-        for (auto position : initialmoves) {
+        for (auto &position : initialmoves) {
             // std::cout << boardToStr(position) << std::endl;
             if (!position.gameResult) initialMoveCount += traverse(position, depth-1);
+            else initialMoveCount++;
         }
 
         return initialMoveCount;
@@ -1138,6 +1155,14 @@ int main(void) {
     std::cout << "Depth 5: " << (unsigned long) traverseWithMoves(b, 5) << std::endl;
     std::cout << "Depth 6: " << (unsigned long) traverseWithMoves(b, 6) << std::endl;
     std::cout << "Depth 7: " << (unsigned long) traverseWithMoves(b, 7) << std::endl;
+
+    // std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
+    // std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
+    // std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
+    // std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
+    // std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
+    // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
+    // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
     // Board b = positionToBoard("RNB1KBNR/PPPPPPPP/413/8/6B1/51N1/ppppkppp/rnbq1bnr/-/W");
     // enpassant pinned
     // Board b = positionToBoard("K1R5/P15P/8/QPpP3k/2P5/7b/6p1/1r1q4/-/W");
