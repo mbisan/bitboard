@@ -2,22 +2,23 @@ Flat profile:
 
 Each sample counts as 0.01 seconds.
   %   cumulative   self              self     total           
- time   seconds   seconds    calls  ms/call  ms/call  name    
- 56.16      1.14     1.14  4892415     0.00     0.00  std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&)
- 19.21      1.53     0.39 31861462     0.00     0.00  void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&)
- 17.24      1.88     0.35        6    58.33   338.33  traverse(Board const&, int)
-  4.43      1.97     0.09   396168     0.00     0.00  std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&)
-  2.96      2.03     0.06  5288583     0.00     0.00  isInCheck(Pieces const&, Pieces const&, bool)
-  0.00      2.03     0.00      128     0.00     0.00  _init
-  0.00      2.03     0.00       37     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
-  0.00      2.03     0.00       12     0.00     0.00  cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
-  0.00      2.03     0.00       12     0.00     0.00  frame_dummy
-  0.00      2.03     0.00        2     0.00     0.00  positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
-  0.00      2.03     0.00        2     0.00     0.00  SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>)
-  0.00      2.03     0.00        2     0.00     0.00  std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&)
-  0.00      2.03     0.00        2     0.00     0.00  std::array<std::vector<int, std::allocator<int> >, 64ul>::~array()
-  0.00      2.03     0.00        1     0.00     0.00  boardToStr[abi:cxx11](Board const&)
-  0.00      2.03     0.00        1     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long)
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 48.61     30.87    30.87 3449455509     0.00     0.00  applyMove(Board, move const&)
+ 25.51     47.07    16.20 119654174     0.00     0.00  std::vector<move, std::allocator<move> > generateMovesShort<true>(Board const&)
+ 16.22     57.37    10.30        7     1.47     9.05  traverseWithMoves(Board const&, int)
+  3.92     59.86     2.49 789887780     0.00     0.00  void std::vector<move, std::allocator<move> >::_M_realloc_insert<move>(__gnu_cxx::__normal_iterator<move*, std::vector<move, std::allocator<move> > >, move&&)
+  3.50     62.08     2.22 129421120     0.00     0.00  isInCheck(Pieces const&, Pieces const&, bool)
+  1.97     63.33     1.25  9766946     0.00     0.00  std::vector<move, std::allocator<move> > generateMovesShort<false>(Board const&)
+  0.27     63.50     0.17      128     0.00     0.00  _init
+  0.00     63.50     0.00       37     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
+  0.00     63.50     0.00       13     0.00     0.00  frame_dummy
+  0.00     63.50     0.00       12     0.00     0.00  cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00     63.50     0.00        2     0.00     0.00  positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+  0.00     63.50     0.00        2     0.00     0.00  SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>)
+  0.00     63.50     0.00        2     0.00     0.00  std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&)
+  0.00     63.50     0.00        2     0.00     0.00  std::array<std::vector<int, std::allocator<int> >, 64ul>::~array()
+  0.00     63.50     0.00        1     0.00     0.00  boardToStr[abi:cxx11](Board const&)
+  0.00     63.50     0.00        1     0.00     0.00  std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long)
 
  %         the percentage of the total running time of the
 time       program used by this function.
@@ -55,76 +56,88 @@ notice and this notice are preserved.
 		     Call graph (explanation follows)
 
 
-granularity: each sample hit covers 4 byte(s) for 0.49% of 2.03 seconds
+granularity: each sample hit covers 4 byte(s) for 0.02% of 63.50 seconds
 
 index % time    self  children    called     name
                                                  <spontaneous>
-[1]    100.0    0.00    2.03                 main [1]
-                0.35    1.68       6/6           traverse(Board const&, int) [2]
-                0.00    0.00      10/12          frame_dummy [7]
-                0.00    0.00       2/2           positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [16]
-                0.00    0.00       1/1           boardToStr[abi:cxx11](Board const&) [20]
+[1]     99.7    0.00   63.33                 main [1]
+               10.30   53.03       7/7           traverseWithMoves(Board const&, int) [2]
+                0.00    0.00      11/13          frame_dummy [10]
+                0.00    0.00       2/2           positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [18]
+                0.00    0.00       1/1           boardToStr[abi:cxx11](Board const&) [22]
 -----------------------------------------------
-                             129421113             traverse(Board const&, int) [2]
-                0.35    1.68       6/6           main [1]
-[2]    100.0    0.35    1.68       6+129421113 traverse(Board const&, int) [2]
-                1.14    0.42 4892415/4892415     std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
-                0.09    0.03  396168/396168      std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
-                             129421113             traverse(Board const&, int) [2]
+                             3449455509             traverseWithMoves(Board const&, int) [2]
+               10.30   53.03       7/7           main [1]
+[2]     99.7   10.30   53.03       7+3449455509 traverseWithMoves(Board const&, int) [2]
+               30.87    0.00 3449455509/3449455509     applyMove(Board, move const&) [3]
+               16.20    4.36 119654174/119654174     std::vector<move, std::allocator<move> > generateMovesShort<true>(Board const&) [4]
+                1.25    0.35 9766946/9766946     std::vector<move, std::allocator<move> > generateMovesShort<false>(Board const&) [7]
+                             3449455509             traverseWithMoves(Board const&, int) [2]
 -----------------------------------------------
-                1.14    0.42 4892415/4892415     traverse(Board const&, int) [2]
-[3]     76.7    1.14    0.42 4892415         std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
-                0.36    0.00 29469666/31861462     void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&) [4]
-                0.06    0.00 4892415/5288583     isInCheck(Pieces const&, Pieces const&, bool) [6]
+               30.87    0.00 3449455509/3449455509     traverseWithMoves(Board const&, int) [2]
+[3]     48.6   30.87    0.00 3449455509         applyMove(Board, move const&) [3]
 -----------------------------------------------
-                0.03    0.00 2391796/31861462     std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
-                0.36    0.00 29469666/31861462     std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
-[4]     19.2    0.39    0.00 31861462         void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&) [4]
+               16.20    4.36 119654174/119654174     traverseWithMoves(Board const&, int) [2]
+[4]     32.4   16.20    4.36 119654174         std::vector<move, std::allocator<move> > generateMovesShort<true>(Board const&) [4]
+                2.30    0.00 731055664/789887780     void std::vector<move, std::allocator<move> >::_M_realloc_insert<move>(__gnu_cxx::__normal_iterator<move*, std::vector<move, std::allocator<move> > >, move&&) [5]
+                2.05    0.00 119654174/129421120     isInCheck(Pieces const&, Pieces const&, bool) [6]
 -----------------------------------------------
-                0.09    0.03  396168/396168      traverse(Board const&, int) [2]
-[5]      6.1    0.09    0.03  396168         std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
-                0.03    0.00 2391796/31861462     void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&) [4]
-                0.00    0.00  396168/5288583     isInCheck(Pieces const&, Pieces const&, bool) [6]
+                0.19    0.00 58832116/789887780     std::vector<move, std::allocator<move> > generateMovesShort<false>(Board const&) [7]
+                2.30    0.00 731055664/789887780     std::vector<move, std::allocator<move> > generateMovesShort<true>(Board const&) [4]
+[5]      3.9    2.49    0.00 789887780         void std::vector<move, std::allocator<move> >::_M_realloc_insert<move>(__gnu_cxx::__normal_iterator<move*, std::vector<move, std::allocator<move> > >, move&&) [5]
 -----------------------------------------------
-                0.00    0.00  396168/5288583     std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [5]
-                0.06    0.00 4892415/5288583     std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [3]
-[6]      3.0    0.06    0.00 5288583         isInCheck(Pieces const&, Pieces const&, bool) [6]
+                0.17    0.00 9766946/129421120     std::vector<move, std::allocator<move> > generateMovesShort<false>(Board const&) [7]
+                2.05    0.00 119654174/129421120     std::vector<move, std::allocator<move> > generateMovesShort<true>(Board const&) [4]
+[6]      3.5    2.22    0.00 129421120         isInCheck(Pieces const&, Pieces const&, bool) [6]
 -----------------------------------------------
-                0.00    0.00       2/12          __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
-                0.00    0.00      10/12          main [1]
-[7]      0.0    0.00    0.00      12         frame_dummy [7]
+                1.25    0.35 9766946/9766946     traverseWithMoves(Board const&, int) [2]
+[7]      2.5    1.25    0.35 9766946         std::vector<move, std::allocator<move> > generateMovesShort<false>(Board const&) [7]
+                0.19    0.00 58832116/789887780     void std::vector<move, std::allocator<move> >::_M_realloc_insert<move>(__gnu_cxx::__normal_iterator<move*, std::vector<move, std::allocator<move> > >, move&&) [5]
+                0.17    0.00 9766946/129421120     isInCheck(Pieces const&, Pieces const&, bool) [6]
 -----------------------------------------------
-                0.00    0.00     128/128         __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
-[13]     0.0    0.00    0.00     128         _init [13]
+                0.17    0.00     128/128         __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [9]
+[8]      0.3    0.17    0.00     128         _init [8]
 -----------------------------------------------
-                0.00    0.00       1/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [21]
-                0.00    0.00      36/37          cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [15]
-[14]     0.0    0.00    0.00      37         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [14]
+                                                 <spontaneous>
+[9]      0.3    0.00    0.17                 __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [9]
+                0.17    0.00     128/128         _init [8]
+                0.00    0.00       2/2           std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [20]
+                0.00    0.00       2/13          frame_dummy [10]
+                0.00    0.00       2/2           SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [19]
+                0.00    0.00       2/2           std::array<std::vector<int, std::allocator<int> >, 64ul>::~array() [21]
 -----------------------------------------------
-                0.00    0.00      12/12          boardToStr[abi:cxx11](Board const&) [20]
-[15]     0.0    0.00    0.00      12         cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [15]
-                0.00    0.00      36/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [14]
+                0.00    0.00       2/13          __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [9]
+                0.00    0.00      11/13          main [1]
+[10]     0.0    0.00    0.00      13         frame_dummy [10]
+-----------------------------------------------
+                0.00    0.00       1/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [23]
+                0.00    0.00      36/37          cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [17]
+[16]     0.0    0.00    0.00      37         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [16]
+-----------------------------------------------
+                0.00    0.00      12/12          boardToStr[abi:cxx11](Board const&) [22]
+[17]     0.0    0.00    0.00      12         cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [17]
+                0.00    0.00      36/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [16]
 -----------------------------------------------
                 0.00    0.00       2/2           main [1]
-[16]     0.0    0.00    0.00       2         positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [16]
+[18]     0.0    0.00    0.00       2         positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [18]
 -----------------------------------------------
-                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
-[17]     0.0    0.00    0.00       2         SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [17]
+                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [9]
+[19]     0.0    0.00    0.00       2         SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [19]
 -----------------------------------------------
-                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
-[18]     0.0    0.00    0.00       2         std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [18]
+                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [9]
+[20]     0.0    0.00    0.00       2         std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [20]
 -----------------------------------------------
-                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [27]
-[19]     0.0    0.00    0.00       2         std::array<std::vector<int, std::allocator<int> >, 64ul>::~array() [19]
+                0.00    0.00       2/2           __static_initialization_and_destruction_0(int, int) [clone .constprop.0] [9]
+[21]     0.0    0.00    0.00       2         std::array<std::vector<int, std::allocator<int> >, 64ul>::~array() [21]
 -----------------------------------------------
                 0.00    0.00       1/1           main [1]
-[20]     0.0    0.00    0.00       1         boardToStr[abi:cxx11](Board const&) [20]
-                0.00    0.00      12/12          cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [15]
-                0.00    0.00       1/1           std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [21]
+[22]     0.0    0.00    0.00       1         boardToStr[abi:cxx11](Board const&) [22]
+                0.00    0.00      12/12          cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [17]
+                0.00    0.00       1/1           std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [23]
 -----------------------------------------------
-                0.00    0.00       1/1           boardToStr[abi:cxx11](Board const&) [20]
-[21]     0.0    0.00    0.00       1         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [21]
-                0.00    0.00       1/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [14]
+                0.00    0.00       1/1           boardToStr[abi:cxx11](Board const&) [22]
+[23]     0.0    0.00    0.00       1         std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long) [23]
+                0.00    0.00       1/37          std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long) [16]
 -----------------------------------------------
 
  This table describes the call tree of the program, and was sorted by
@@ -217,8 +230,9 @@ notice and this notice are preserved.
 
 Index by function name
 
-  [20] boardToStr[abi:cxx11](Board const&) [2] traverse(Board const&, int) [4] void std::vector<Board, std::allocator<Board> >::_M_realloc_insert<Board>(__gnu_cxx::__normal_iterator<Board*, std::vector<Board, std::allocator<Board> > >, Board&&)
-  [15] cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [6] isInCheck(Pieces const&, Pieces const&, bool) [21] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long)
-   [3] std::vector<Board, std::allocator<Board> > generateMoves<false>(Board const&) [17] SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [14] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
-   [5] std::vector<Board, std::allocator<Board> > generateMoves<true>(Board const&) [18] std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [13] _init
-  [16] positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [19] std::array<std::vector<int, std::allocator<int> >, 64ul>::~array() [7] frame_dummy
+  [22] boardToStr[abi:cxx11](Board const&) [3] applyMove(Board, move const&) [23] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_replace(unsigned long, unsigned long, char const*, unsigned long)
+  [17] cInSetBits(unsigned long, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [6] isInCheck(Pieces const&, Pieces const&, bool) [16] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_mutate(unsigned long, unsigned long, char const*, unsigned long)
+  [18] positionToBoard(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) [19] SliderLookup::SliderLookup(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::array<std::vector<int, std::allocator<int> >, 64ul>) [8] _init
+   [2] traverseWithMoves(Board const&, int) [20] std::array<std::vector<int, std::allocator<int> >, 64ul>::array(std::array<std::vector<int, std::allocator<int> >, 64ul> const&) [10] frame_dummy
+   [7] std::vector<move, std::allocator<move> > generateMovesShort<false>(Board const&) [21] std::array<std::vector<int, std::allocator<int> >, 64ul>::~array()
+   [4] std::vector<move, std::allocator<move> > generateMovesShort<true>(Board const&) [5] void std::vector<move, std::allocator<move> >::_M_realloc_insert<move>(__gnu_cxx::__normal_iterator<move*, std::vector<move, std::allocator<move> > >, move&&)

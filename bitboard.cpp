@@ -130,11 +130,13 @@ Pieces removePiece(Pieces pieces, Squares removepositions) {
 }
 
 struct move {
-    uint16_t movedPiece; 
-    // 0b000000_000000_000_0 
+    uint8_t movedPieceType; // piece types: 1-King 2-Queen 3-Rook 4-Bishop 5-Knight 6-Pawn 0-No piece moved
+    uint8_t movedPieceStart;
+    uint8_t movedPieceEnd;
     // (fist bit to determine if this number is considered) (next 6 the initial position of the piece) (next 3 to determine piece type)
-    // piece types: 1-King 2-Queen 3-Rook 4-Bishop 5-Knight 6-Pawn 0-No piece moved
-    uint16_t movedPiece2; // for castles and enpassant
+    uint8_t movedPiece2Type;
+    uint8_t movedPiece2Start;
+    uint8_t movedPiece2End;
     uint8_t enpassant; // new enpassant status
     uint8_t castles; // new castles status
 };
@@ -154,73 +156,73 @@ Board applyMove(Board board, const move &m) {
     self->castles = m.castles;
 
     board.isWhite = !board.isWhite;
-    Squares finalpos = positionToBit[m.movedPiece >> 10];
-    Squares nfinalpos = ~positionToBit[m.movedPiece >> 10];
+    Squares finalpos = positionToBit[m.movedPieceEnd];
+    Squares nfinalpos = ~finalpos;
 
-    switch ((m.movedPiece & 0b0000000000001110U) >> 1)
+    switch (m.movedPieceType)
     {
     case 0U:
         if (m.castles & 0b00110000U) {board.gameResult = 0b10U; return board;} // checkmate
         else if (m.castles & 0b11000000U) {board.gameResult = 0b01U; return board;} // draw
         break;
     case 1U: // king move
-        self->king ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        self->king ^= positionToBit[m.movedPieceStart] | finalpos;
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
 
         // handle casles
-        if (m.movedPiece2) {
-            self->rooks ^= positionToBit[(m.movedPiece2 & 0b0000001111110000U) >> 4] | positionToBit[m.movedPiece2 >> 10];
+        if (m.movedPiece2Type) {
+            self->rooks ^= positionToBit[m.movedPiece2Start] | positionToBit[m.movedPiece2End];
         }
         break;
     case 2U: // queen move
-        self->queens ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        self->queens ^= positionToBit[m.movedPieceStart] | finalpos;
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
         break;
     case 3U: // rook move
-        self->rooks ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        self->rooks ^= positionToBit[m.movedPieceStart] | finalpos;
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
         break;
     case 4U: // bishop move
-        self->bishops ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        self->bishops ^= positionToBit[m.movedPieceStart] | finalpos;
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
         break;
     case 5U: // knight move
-        self->knights ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        self->knights ^= positionToBit[m.movedPieceStart] | finalpos;
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
         break;
     case 6U: // pawn move
-        self->pawns ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4] | finalpos;
+        self->pawns ^= positionToBit[m.movedPieceStart] | finalpos;
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
 
         // handle enpassant
-        if (m.movedPiece2) {
-            enemy->pawns &= ~positionToBit[(m.movedPiece2 & 0b0000001111110000U) >> 4];
+        if (m.movedPiece2Type) {
+            enemy->pawns &= ~positionToBit[m.movedPiece2Start];
         }
         break;
     case 7U: // promotion
-        self->pawns ^= positionToBit[(m.movedPiece & 0b0000001111110000U) >> 4];
+        self->pawns ^= positionToBit[m.movedPieceStart];
         enemy->queens &= nfinalpos; enemy->rooks &= nfinalpos; enemy->bishops &= nfinalpos;
         enemy->knights &= nfinalpos; enemy->pawns &= nfinalpos;
 
-        switch ((m.movedPiece2 & 0b0000000000001110U) >> 1)
+        switch (m.movedPiece2Type)
         {
         case 2U:
-            self->queens ^= positionToBit[m.movedPiece >> 10];
+            self->queens ^= positionToBit[m.movedPiece2End];
             break;
         case 3U:
-            self->rooks ^= positionToBit[m.movedPiece >> 10];
+            self->rooks ^= positionToBit[m.movedPiece2End];
             break;
         case 4U:
-            self->bishops ^= positionToBit[m.movedPiece >> 10];
+            self->bishops ^= positionToBit[m.movedPiece2End];
             break;
         case 5U:
-            self->knights ^= positionToBit[m.movedPiece >> 10];
+            self->knights ^= positionToBit[m.movedPiece2End];
             break;
         default:
             break;
@@ -264,10 +266,10 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares kingReachable = kingMoves[kingIndex] & notSelf & ~r.enemySeen & ~r.kingNotReachable;
 
         BitLoop(kingReachable) {            
-            newMoves.push_back({createPieceMove(1, kingIndex, bitFromSquare(temp), isWhite), 0U, 0U, 0U});
+            newMoves.push_back({1, (uint8_t)kingIndex, (uint8_t)bitFromSquare(temp), 0U, 0U, 0U, 0U, 0U});
         }
 
-        if (newMoves.size() == 0) newMoves.push_back({0U, 0U, 0U, 0b00110000U}); // checkmate
+        if (newMoves.size() == 0) newMoves.push_back({0U, 0U, 0U, 0U, 0U, 0U, 0U, 0b00110000U}); // checkmate
 
         return newMoves;
     } 
@@ -278,7 +280,7 @@ std::vector<move> generateMovesShort(const Board &board) {
     // generate king moves
     Squares kingReachable = kingMoves[kingIndex] & notSelf & ~r.enemySeen & ~r.kingNotReachable;
     BitLoop(kingReachable) {
-        newMoves.push_back({createPieceMove(1, kingIndex, bitFromSquare(temp), isWhite), 0U, 0U, 0U});
+        newMoves.push_back({1, (uint8_t)kingIndex, (uint8_t)bitFromSquare(temp), 0U, 0U, 0U, 0U, 0U});
     }
 
     // generate rook/queen moves
@@ -294,7 +296,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         if (pieceIndex == (isWhite ? 7 : 63)) castles_result &= 0b01; // moving R Rook so cannot R castle
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(3, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, castles_result});
+            newMoves.push_back({3, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, castles_result});
         }
     }
 
@@ -304,7 +306,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;
         
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({2, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -318,7 +320,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         if (pieceIndex == (isWhite ? 7 : 63)) castles_result &= 0b01; // moving R Rook so cannot R castle
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(3, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, castles_result});
+            newMoves.push_back({3, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, castles_result});
         }
     }
 
@@ -328,7 +330,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
         
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({2, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -340,7 +342,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(4, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({4, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -350,7 +352,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({2, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -360,7 +362,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(4, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({4, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -370,7 +372,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(2, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({2, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -380,7 +382,7 @@ std::vector<move> generateMovesShort(const Board &board) {
         Squares reachable = knightMoves[pieceIndex] & notSelf_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(5, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({5, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -396,14 +398,14 @@ std::vector<move> generateMovesShort(const Board &board) {
 
             if (positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)] & ~r.occupied & r.pinmaskHV & r.checkMask) { // i.e. 2 squares in front of pawn not occupied
                 newMoves.push_back(
-                    {createPieceMove(6, pieceIndex, pieceIndex + 2 * pawnAdvace(isWhite), isWhite), 0U, 
+                    {6, (uint8_t)pieceIndex, (uint8_t)(pieceIndex + 2 * pawnAdvace(isWhite)), 0U, 0U, 0U,
                     (uint8_t)(positionToBit[pieceIndex] >> (isWhite ? 8 : 48)) , self.castles});
             }
         }
         reachable |= pawnAttacks(isWhite)[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(6, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({6, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -420,18 +422,18 @@ std::vector<move> generateMovesShort(const Board &board) {
 
             if (positionToBit[finalIndex] & pawnEndFile(isWhite)) { // pawn promotion
                 newMoves.push_back( // promote to queen
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(2, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 2, 0, (uint8_t)finalIndex, 0U, self.castles});
 
                 newMoves.push_back( // promote to rook
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(3, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 3, 0, (uint8_t)finalIndex, 0U, self.castles});
 
                 newMoves.push_back( // promote to bishop
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(4, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 4, 0, (uint8_t)finalIndex, 0U, self.castles});
 
                 newMoves.push_back( // promote to knight
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(5, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 5, 0, (uint8_t)finalIndex, 0U, self.castles});
             } else {
-                newMoves.push_back({createPieceMove(6, pieceIndex, finalIndex, isWhite), 0U, 0U, self.castles});
+                newMoves.push_back({6, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
             }
         }
     }
@@ -445,14 +447,14 @@ std::vector<move> generateMovesShort(const Board &board) {
 
             if (positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)] & ~r.occupied & r.checkMask) { // i.e. 2 squares in front of pawn not occupied
                 newMoves.push_back(
-                    {createPieceMove(6, pieceIndex, pieceIndex + 2 * pawnAdvace(isWhite), isWhite), 0U, 
+                    {6, (uint8_t)pieceIndex, (uint8_t)(pieceIndex + 2 * pawnAdvace(isWhite)), 0U, 0U, 0U,
                     (uint8_t)(positionToBit[pieceIndex] >> (isWhite ? 8 : 48)), self.castles});
             }
         }
         reachable |= pawnAttacks(isWhite)[pieceIndex] & enemy_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back({createPieceMove(6, pieceIndex, bitFromSquare(temp2), isWhite), 0U, 0U, self.castles});
+            newMoves.push_back({6, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
         }
     }
 
@@ -469,18 +471,18 @@ std::vector<move> generateMovesShort(const Board &board) {
 
             if (positionToBit[finalIndex] & pawnEndFile(isWhite)) { // pawn promotion
                 newMoves.push_back( // promote to queen
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(2, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 2, 0, (uint8_t)finalIndex, 0U, self.castles});
 
                 newMoves.push_back( // promote to rook
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(3, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 3, 0, (uint8_t)finalIndex, 0U, self.castles});
 
                 newMoves.push_back( // promote to bishop
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(4, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 4, 0, (uint8_t)finalIndex, 0U, self.castles});
 
                 newMoves.push_back( // promote to knight
-                    {createPieceMove(7, pieceIndex, finalIndex, isWhite), createPieceMove(5, 0, finalIndex, isWhite), 0U, self.castles});
+                    {7, (uint8_t)pieceIndex, (uint8_t)finalIndex, 5, 0, (uint8_t)finalIndex, 0U, self.castles});
             } else {
-                newMoves.push_back({createPieceMove(6, pieceIndex, finalIndex, isWhite), 0U, 0U, self.castles});
+                newMoves.push_back({6, (uint8_t)pieceIndex, (uint8_t)bitFromSquare(temp2), 0U, 0U, 0U, 0U, self.castles});
             }
         }
     }
@@ -497,7 +499,7 @@ std::vector<move> generateMovesShort(const Board &board) {
                 if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(isWhite) + 1] & r.pinmaskD)) continue;
 
                 newMoves.push_back( // enpassant capture
-                    {createPieceMove(6, pieceIndex, pieceIndex + pawnAdvace(isWhite) + 1, isWhite), createPieceMove(6, pieceIndex + 1, 0, !isWhite), 0U, self.castles});
+                    {6, (uint8_t)pieceIndex, (uint8_t)(pieceIndex + pawnAdvace(isWhite) + 1), 6, (uint8_t)(pieceIndex + 1), 0, 0U, self.castles});
             } 
             if (positionToBit[pieceIndex - 1] & enemyEnPassant) {
                 // check if the taken piece is not D pinned
@@ -506,7 +508,7 @@ std::vector<move> generateMovesShort(const Board &board) {
                 if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(isWhite) - 1] & r.pinmaskD)) continue;
 
                 newMoves.push_back( // enpassant capture
-                    {createPieceMove(6, pieceIndex, pieceIndex + pawnAdvace(isWhite) - 1, isWhite), createPieceMove(6, pieceIndex - 1, 0, !isWhite), 0U, self.castles});
+                    {6, (uint8_t)pieceIndex, (uint8_t)(pieceIndex + pawnAdvace(isWhite) - 1), 6, (uint8_t)(pieceIndex - 1), 0, 0U, self.castles});
             }
         }
     }
@@ -514,19 +516,19 @@ std::vector<move> generateMovesShort(const Board &board) {
     if (self.castles & 1U && !r.checkCount) { // castles left -> king index is 4 and L rook 0 or 60 and 56 
         if (!(r.occupied & castleLocc(isWhite)) && !(castleLcheck(isWhite) & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
             newMoves.push_back( // castles left
-                {createPieceMove(1, isWhite ? 4 : 60, isWhite ? 2 : 58, isWhite), createPieceMove(3, isWhite ? 0 : 56, isWhite ? 3 : 59, isWhite), 0U, 0U});
+                {1, isWhite ? 4 : 60, isWhite ? 2 : 58, 3, isWhite ? 0 : 56, isWhite ? 3 : 59, 0U, 0U});
         }
     }
 
     if (self.castles & 2U && !r.checkCount) { // castles right
         if (!(r.occupied & castleRcheck(isWhite)) && !(castleRcheck(isWhite) & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
             newMoves.push_back( // castles right
-                {createPieceMove(1, isWhite ? 4 : 60, isWhite ? 6 : 62, isWhite), createPieceMove(3, isWhite ? 7 : 63, isWhite ? 4 : 61, isWhite), 0U, 0U});
+                {1, isWhite ? 4 : 60, isWhite ? 6 : 62, 3, isWhite ? 7 : 63, isWhite ? 4 : 61, 0U, 0U});
         }
     }
 
     if (newMoves.size() == 0) {
-        newMoves.push_back({0, 0, 0, (r.checkCount ? (uint8_t) 0b00110000U : (uint8_t)0b11000000U)}); // checkmate or draw
+        newMoves.push_back({0, 0, 0, 0, 0, 0, 0, (r.checkCount ? (uint8_t) 0b00110000U : (uint8_t)0b11000000U)}); // checkmate or draw
         return newMoves;
     }
     return newMoves;
