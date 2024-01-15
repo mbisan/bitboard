@@ -422,13 +422,13 @@ std::vector<Board> generateMoves(const Board &board) {
 
     if (board.castlesStatus & castlesL<isWhite>() && !r.checkCount) { // castles left -> king index is 4 and L rook 0 or 60 and 56 
         if (!(r.occupied & castleLocc<isWhite>()) && !(castleLcheck<isWhite>() & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
-            newMoves.push_back(board.castlesMove<isWhite, true>());
+            newMoves.push_back(board.castlesMoveL<isWhite>());
         }
     }
 
     if (board.castlesStatus & castlesR<isWhite>() && !r.checkCount) { // castles right
         if (!(r.occupied & castleRcheck<isWhite>()) && !(castleRcheck<isWhite>() & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
-            newMoves.push_back(board.castlesMove<isWhite, false>());
+            newMoves.push_back(board.castlesMoveR<isWhite>());
         }
     }
 
@@ -479,13 +479,13 @@ int main(void) {
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
-    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
-    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
-    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
-    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
-    // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
-    // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
+    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl; // 20
+    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl; // 400
+    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl; // 8902
+    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl; // 197281
+    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl; // 4865609
+    // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl; // 119060324
+    // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl; // 3195901860
 
     auto end_time = std::chrono::high_resolution_clock::now();
     

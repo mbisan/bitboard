@@ -366,7 +366,7 @@ struct Board {
         if constexpr (piece == 5) { // knight
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
                     {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
@@ -442,7 +442,7 @@ struct Board {
         if constexpr (piece == 5) { // knight
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
                     {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
@@ -461,7 +461,7 @@ struct Board {
     Board kingMoves(Squares initial, Squares final) const {
         if constexpr (white) {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king ^ (initial | final)},
                 {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, 0
                 };
@@ -492,8 +492,8 @@ struct Board {
         }
     }
 
-    template<bool white, bool left>
-    Board castlesMove() const {
+    template<bool white>
+    Board castlesMoveL() const {
         if constexpr (white) {
             return {
                 {wP.pawns, wP.rooks ^ 0x0000000000000009ULL, wP.bishops, wP.knights, wP.queens, wP.king ^ 0x0000000000000014ULL},
@@ -504,6 +504,23 @@ struct Board {
             return {
                 {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
                 {bP.pawns, bP.rooks ^ 0x0900000000000000ULL, bP.bishops, bP.knights, bP.queens, bP.king ^ 0x1400000000000000ULL}, !white,
+                0, 0
+                };
+        }
+    }
+
+    template<bool white>
+    Board castlesMoveR() const {
+        if constexpr (white) {
+            return {
+                {wP.pawns, wP.rooks ^ 0x00000000000000a0ULL, wP.bishops, wP.knights, wP.queens, wP.king ^ 0x0000000000000050ULL},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
+                0, 0
+                };
+        } else {
+            return {
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns, bP.rooks ^ 0xa000000000000000ULL, bP.bishops, bP.knights, bP.queens, bP.king ^ 0x5000000000000000ULL}, !white,
                 0, 0
                 };
         }
