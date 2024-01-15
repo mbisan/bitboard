@@ -1,5 +1,4 @@
-#include "lookup.cpp"
-#include "base.cpp"
+#include "display.cpp"
 
 #include <chrono>
 
@@ -106,9 +105,9 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, u
 
     BitLoop(enemyPieces.pawns) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        enemySeen |= pawnAttacks(!isWhite)[pieceIndex];
+        enemySeen |= pawnAttacks<!isWhite>()[pieceIndex];
         
-        if (pawnAttacks(!isWhite)[pieceIndex] & selfPieces.king) { // i.e. pawn attacking our king
+        if (pawnAttacks<!isWhite>()[pieceIndex] & selfPieces.king) { // i.e. pawn attacking our king
             checkMask |= positionToBit[pieceIndex];
             checkcount++;
         }
@@ -120,16 +119,16 @@ isInCheckResult isInCheck(const Pieces &selfPieces, const Pieces &enemyPieces, u
 }
 
 template<bool isWhite>
-std::vector<Board> generateMovesShort(const Board &board) {
+std::vector<Board> generateMoves(const Board &board) {
     std::vector<Board> newMoves;
 
     Pieces self, enemy;
     if constexpr (isWhite) {
-        self = board.whitePieces;
-        enemy = board.blackPieces;
+        self = board.wP;
+        enemy = board.bP;
     } else {
-        self = board.blackPieces;
-        enemy = board.whitePieces;
+        self = board.bP;
+        enemy = board.wP;
     }
 
     uint8_t enPassant = board.enPassant;
@@ -155,7 +154,7 @@ std::vector<Board> generateMovesShort(const Board &board) {
             newMoves.push_back(board.kingMoves<isWhite>(self.king, _blsi_u64(temp)));
         }
 
-        if (newMoves.size() == 0) newMoves.push_back(ckeckMate()); // checkmate
+        if (newMoves.size() == 0) newMoves.push_back({Pieces(), Pieces(), 0, !isWhite, 0b10000000}); // checkmate
         return newMoves;
     } 
     if (r.checkCount == 0) r.checkMask = 0xffffffffffffffff; // if no checks are given, then all squares are available for all pieces
@@ -216,7 +215,7 @@ std::vector<Board> generateMovesShort(const Board &board) {
     // pinned queens
     BitLoop(self.queens & r.pinmaskHV) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlockedRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
+        Squares reachable = sliderRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
         
         BitLoop2(reachable & esq) {
             newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -231,7 +230,7 @@ std::vector<Board> generateMovesShort(const Board &board) {
     // non-pinned bishops
     BitLoop(self.bishops & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
+        Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
 
         BitLoop2(reachable & esq) {
             newMoves.push_back(board.pieceMove<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -244,7 +243,7 @@ std::vector<Board> generateMovesShort(const Board &board) {
     // non-pinned queens
     BitLoop(self.queens & ~pinmask) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
+        Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
 
         BitLoop2(reachable & esq) {
             newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -257,7 +256,7 @@ std::vector<Board> generateMovesShort(const Board &board) {
     // pinned bishops
     BitLoop((self.bishops) & r.pinmaskD) { // HV-pinned bishop cannot move
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
+        Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
 
         BitLoop2(reachable & esq) {
             newMoves.push_back(board.pieceMove<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -270,7 +269,7 @@ std::vector<Board> generateMovesShort(const Board &board) {
     // pinned queens
     BitLoop(self.queens & r.pinmaskD) {
         uint64_t pieceIndex = bitFromSquare(temp);
-        Squares reachable = reachableNotBlockedBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
+        Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
 
         BitLoop2(reachable & esq) {
             newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -296,18 +295,18 @@ std::vector<Board> generateMovesShort(const Board &board) {
     Squares enemy_n_checkMask = r.checkMask & r.enemySquares;
 
     // PINNED PAWNS
-    BitLoop(self.pawns & pinmask & pawnStartFile(isWhite)) { // starting file pinned pawns
+    BitLoop(self.pawns & pinmask & pawnStartFile<isWhite>()) { // starting file pinned pawns
         uint64_t pieceIndex = bitFromSquare(temp);
 
         Squares nocc_pinmask_checkmask = ~r.occupied & r.pinmaskHV & r.checkMask;
-        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & nocc_pinmask_checkmask) { // i.e. the square in front of the pawn is not occupied            
-            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & nocc_pinmask_checkmask) { // i.e. the square in front of the pawn is not occupied            
+            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
 
-            if (positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)] & nocc_pinmask_checkmask) { // i.e. 2 squares in front of pawn not occupied
-                newMoves.push_back(board.pawnPush<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)]));
+            if (positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()] & nocc_pinmask_checkmask) { // i.e. 2 squares in front of pawn not occupied
+                newMoves.push_back(board.pawnPush<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()]));
             }
         }
-        Squares reachable |= pawnAttacks(isWhite)[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
+        Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
 
         BitLoop2(reachable) {
             newMoves.push_back(board.pawnCapture<isWhite>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -317,48 +316,48 @@ std::vector<Board> generateMovesShort(const Board &board) {
     BitLoop(self.pawns & pinmask & 0x0000ffffffff0000ULL) { // pinned pawns not in starting file or previous to end file
         uint64_t pieceIndex = bitFromSquare(temp);
 
-        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied & r.pinmaskHV & r.checkMask) { // i.e. the square in front of the pawn is not occupied
-            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & ~r.occupied & r.pinmaskHV & r.checkMask) { // i.e. the square in front of the pawn is not occupied
+            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
         }
-        Squares reachable |= pawnAttacks(isWhite)[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
+        Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
 
         BitLoop2(reachable) {
             newMoves.push_back(board.pawnCapture<isWhite>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
-    BitLoop(self.pawns & pinmask & pawnPEndFile(isWhite)) { // pinned pawns in next to end file
+    BitLoop(self.pawns & pinmask & pawnPEndFile<isWhite>()) { // pinned pawns in next to end file
         uint64_t pieceIndex = bitFromSquare(temp);
 
-        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied & r.pinmaskHV & r.checkMask) { // i.e. the square in front of the pawn is not occupied
-            newMoves.push_back(board.pawnPromote<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromote<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromote<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromote<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & ~r.occupied & r.pinmaskHV & r.checkMask) { // i.e. the square in front of the pawn is not occupied
+            newMoves.push_back(board.pawnPromote<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromote<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromote<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromote<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
         }
-        Squares reachable |= pawnAttacks(isWhite)[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
+        Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
         }
     }
 
     // UNPINNED PAWNS
-    BitLoop(self.pawns & ~pinmask & pawnStartFile(isWhite)) { // starting file unpinned pawns
+    BitLoop(self.pawns & ~pinmask & pawnStartFile<isWhite>()) { // starting file unpinned pawns
         uint64_t pieceIndex = bitFromSquare(temp);
 
         Squares nocc_checkmask = ~r.occupied & r.checkMask;
-        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & nocc_checkmask) { // i.e. the square in front of the pawn is not occupied            
-            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & nocc_checkmask) { // i.e. the square in front of the pawn is not occupied            
+            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
 
-            if (positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)] & nocc_checkmask) { // i.e. 2 squares in front of pawn not occupied
-                newMoves.push_back(board.pawnPush<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + 2 * pawnAdvace(isWhite)]));
+            if (positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()] & nocc_checkmask) { // i.e. 2 squares in front of pawn not occupied
+                newMoves.push_back(board.pawnPush<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()]));
             }
         }
-        Squares reachable |= pawnAttacks(isWhite)[pieceIndex] & enemy_n_checkMask;
+        Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & enemy_n_checkMask;
 
         BitLoop2(reachable) {
             newMoves.push_back(board.pawnCapture<isWhite>(_blsi_u64(temp), _blsi_u64(temp2)));
@@ -368,74 +367,129 @@ std::vector<Board> generateMovesShort(const Board &board) {
     BitLoop(self.pawns & ~pinmask & 0x0000ffffffff0000ULL) { // unpinned pawns not in starting file or previous to end file
         uint64_t pieceIndex = bitFromSquare(temp);
 
-        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied & r.checkMask) { // i.e. the square in front of the pawn is not occupied
-            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & ~r.occupied & r.checkMask) { // i.e. the square in front of the pawn is not occupied
+            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
         }
-        Squares reachable |= pawnAttacks(isWhite)[pieceIndex] & enemy_n_checkMask;
+        Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & enemy_n_checkMask;
 
         BitLoop2(reachable) {
             newMoves.push_back(board.pawnCapture<isWhite>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
-    BitLoop(self.pawns & ~pinmask & pawnPEndFile(isWhite)) { // pinned pawns in next to end file
+    BitLoop(self.pawns & ~pinmask & pawnPEndFile<isWhite>()) { // pinned pawns in next to end file
         uint64_t pieceIndex = bitFromSquare(temp);
 
-        if (positionToBit[pieceIndex + pawnAdvace(isWhite)] & ~r.occupied & r.checkMask) { // i.e. the square in front of the pawn is not occupied
-            newMoves.push_back(board.pawnPromote<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromote<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromote<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromote<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & ~r.occupied & r.checkMask) { // i.e. the square in front of the pawn is not occupied
+            newMoves.push_back(board.pawnPromote<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromote<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromote<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromote<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
         }
-        Squares reachable |= pawnAttacks(isWhite)[pieceIndex] & enemy_n_checkMask;
+        Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & enemy_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
-            newMoves.push_back(board.pawnPromoteCapture<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvace(isWhite)]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 2>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 3>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 4>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
+            newMoves.push_back(board.pawnPromoteCapture<isWhite, 5>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
         }
     }
 
     if (enPassant) { // there is an enpassant pawn for the enemy
-        Squares enemyEnPassant = (Squares) enPassant << (constexpr (isWhite ? 32 : 24));
-        BitLoop(self.pawns & pawnEP(isWhite) & ~r.pinmaskHV & ~r.enpassantpin) { // enpassant NON - ep-pinned pawns, non HV pinned
+        Squares enemyEnPassant = (Squares) enPassant << enPassantShift<isWhite>();
+        BitLoop(self.pawns & pawnEP<isWhite>() & ~r.pinmaskHV & ~r.enpassantpin) { // enpassant NON - ep-pinned pawns, non HV pinned
             uint64_t pieceIndex = bitFromSquare(temp);
 
             if (positionToBit[pieceIndex + 1] & enemyEnPassant) {
                 // check if the taken piece is not D pinned
                 if (enemyEnPassant & r.pinmaskD) continue;
                 // self piece is part of pinD -> end square must be part of pinD
-                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(isWhite) + 1] & r.pinmaskD)) continue;
+                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvance<isWhite>() + 1] & r.pinmaskD)) continue;
 
-                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex + pawnAdvace(isWhite) + 1], positionToBit[pieceIndex + 1]));
+                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex + pawnAdvance<isWhite>() + 1], positionToBit[pieceIndex + 1]));
             } 
             if (positionToBit[pieceIndex - 1] & enemyEnPassant) {
                 // check if the taken piece is not D pinned
                 if (enemyEnPassant & r.pinmaskD) continue;
                 // self piece is part of pinD -> end square must be part of pinD
-                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvace(isWhite) - 1] & r.pinmaskD)) continue;
+                if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvance<isWhite>() - 1] & r.pinmaskD)) continue;
 
-                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex + pawnAdvace(isWhite) - 1], positionToBit[pieceIndex - 1]));
+                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex + pawnAdvance<isWhite>() - 1], positionToBit[pieceIndex - 1]));
             }
         }
     }
 
-    if (self.castles & 1U && !r.checkCount) { // castles left -> king index is 4 and L rook 0 or 60 and 56 
-        if (!(r.occupied & castleLocc(isWhite)) && !(castleLcheck(isWhite) & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
+    if (board.castlesStatus & castlesL<isWhite>() && !r.checkCount) { // castles left -> king index is 4 and L rook 0 or 60 and 56 
+        if (!(r.occupied & castleLocc<isWhite>()) && !(castleLcheck<isWhite>() & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
             newMoves.push_back(board.castlesMove<isWhite, true>());
         }
     }
 
-    if (self.castles & 2U && !r.checkCount) { // castles right
-        if (!(r.occupied & castleRcheck(isWhite)) && !(castleRcheck(isWhite) & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
+    if (board.castlesStatus & castlesR<isWhite>() && !r.checkCount) { // castles right
+        if (!(r.occupied & castleRcheck<isWhite>()) && !(castleRcheck<isWhite>() & r.enemySeen)) { // turret and king can see each other AND squares are not seen by enemy
             newMoves.push_back(board.castlesMove<isWhite, false>());
         }
     }
 
     if (newMoves.size() == 0) {
-        newMoves.push_back(r.checkCount ? checkMate() : draw());
+        if (r.checkCount) newMoves.push_back({Pieces(), Pieces(), 0, !isWhite, 0b10000000});
+        else newMoves.push_back({Pieces(), Pieces(), 0, !isWhite, 0b01000000});
         return newMoves;
     }
     return newMoves;
+}
+
+uint64_t traverse(const Board &initialPosition, int depth) {
+    if (depth == 0) return 1ULL;
+
+    uint64_t initialMoveCount = 0;
+
+    if (initialPosition.isWhite) {
+        auto initialmoves = generateMoves<true>(initialPosition);
+
+        for (auto &position : initialmoves) {
+            // std::cout << boardToStr(position) << std::endl;
+            if (!(position.castlesStatus & 0b11000000)) initialMoveCount += traverse(position, depth-1);
+            // else initialMoveCount++;
+        }
+
+        return initialMoveCount;
+    }
+    else {
+        auto initialmoves = generateMoves<false>(initialPosition);
+
+        for (auto &position : initialmoves) {
+            // std::cout << boardToStr(position) << std::endl;
+            if (!(position.castlesStatus & 0b11000000)) initialMoveCount += traverse(position, depth-1);
+            // else initialMoveCount++;
+        }
+
+        return initialMoveCount;
+    }
+}
+
+
+int main(void) {
+
+    Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
+    b.isWhite = true; b.castlesStatus = 0b1111;
+
+    std::cout << boardToStr(b) << std::endl;
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Depth 1: " << (unsigned long) traverse(b, 1) << std::endl;
+    std::cout << "Depth 2: " << (unsigned long) traverse(b, 2) << std::endl;
+    std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl;
+    std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl;
+    std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl;
+    // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl;
+    // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl;
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+    std::cout << "Execution time: " << duration.count() << " microseconds" << std::endl;
+    return 0;
 }

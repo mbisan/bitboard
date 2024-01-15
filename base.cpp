@@ -1,3 +1,5 @@
+#include "lookup.cpp"
+
 #include <iostream>
 #include <immintrin.h>
 #include <array>
@@ -6,21 +8,75 @@
 
 typedef uint64_t Squares; // occupied squares have bits set to one
 
-#define pawnInitial(isWhite) constexpr (isWhite ? 1 : 6)
-#define pawnAdvace(isWhite) constexpr (isWhite ? 8 : -8)
+template<bool isWhite>
+constexpr int pawnInitial() {
+    return (isWhite ? 1 : 6);
+}
 
-#define enPassantFile(isWhite) constexpr (isWhite ? 4 : 2)
+template<bool isWhite>
+constexpr int pawnAdvance() {
+    return (isWhite ? 8 : -8);
+}
 
-#define pawnStartFile(isWhite) constexpr (isWhite ? 0x000000000000ff00ULL : 0x00ff000000000000ULL)
-#define startFile(isWhite) constexpr (isWhite ? 0x00000000000000ffULL : 0xff00000000000000ULL)
-#define pawnEP(isWhite) constexpr (isWhite ? 0x000000ff00000000ULL : 0x00000000ff000000ULL)
-#define pawnPEndFile(isWhite) constexpr (isWhite ? 0x00ff000000000000ULL : 0x00000000000ff00ULL)
+template<bool isWhite>
+constexpr int enPassantFile() {
+    return (isWhite ? 4 : 2);
+}
 
-#define castleLcheck(isWhite) constexpr (isWhite ? 0x000000000000000cULL : 0x0c00000000000000ULL)
-#define castleLocc(isWhite) constexpr (isWhite ? 0x000000000000000eULL : 0x0e00000000000000ULL)
-#define castleRcheck(isWhite) constexpr (isWhite ? 0x0000000000000060ULL : 0x6000000000000000ULL)
+template<bool isWhite>
+constexpr uint64_t pawnStartFile() {
+    return (isWhite ? 0x000000000000ff00ULL : 0x00ff000000000000ULL);
+}
 
-#define pawnAttacks(isWhite) constexpr (isWhite ? wpawnAttacks : bpawnAttacks)
+template<bool isWhite>
+constexpr uint64_t startFile() {
+    return (isWhite ? 0x00000000000000ffULL : 0xff00000000000000ULL);
+}
+
+template<bool isWhite>
+constexpr uint64_t pawnEP() {
+    return (isWhite ? 0x000000ff00000000ULL : 0x00000000ff000000ULL);
+}
+
+template<bool isWhite>
+constexpr uint64_t pawnPEndFile() {
+    return (isWhite ? 0x00ff000000000000ULL : 0x00000000000ff00ULL);
+}
+
+template<bool isWhite>
+constexpr uint64_t castleLocc() {
+    return (isWhite ? 0x000000000000000eULL : 0x0e00000000000000ULL);
+}
+
+template<bool isWhite>
+constexpr uint64_t castleLcheck() {
+    return (isWhite ? 0x000000000000000cULL : 0x0c00000000000000ULL);
+}
+
+template<bool isWhite>
+constexpr uint64_t castleRcheck() {
+    return (isWhite ? 0x0000000000000060ULL : 0x6000000000000000ULL);
+}
+
+template<bool isWhite>
+constexpr uint64_t *pawnAttacks() {
+    return (isWhite ? wpawnAttacks : bpawnAttacks);
+}
+
+template<bool isWhite>
+constexpr int enPassantShift() {
+    return (isWhite ? 32 : 24);
+}
+
+template<bool isWhite>
+constexpr int castlesL() {
+    return (isWhite ? 0b1 : 0b100);
+}
+
+template<bool isWhite>
+constexpr int castlesR() {
+    return (isWhite ? 0b10 : 0b1000);
+}
 
 // _blsr_u64(X) https://www.felixcloutier.com/x86/blsr sets the lowest set bit to 0 i.e. _blsr_u64(0b100100) = 0b100000
 // _tzcnt_u64(X) https://www.felixcloutier.com/x86/blsr counts number of trailing zeros i.e. _tzcnt_u64(0b100100) = 2
@@ -53,14 +109,14 @@ struct Board {
     Board pawnForward(Squares initial, Squares final) const {
         if constexpr (white) {
             return {
-                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
         } else {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
         }
@@ -70,15 +126,15 @@ struct Board {
     Board pawnPush(Squares initial, Squares final) const {
         if constexpr (white) {
             return {
-                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
-                (uint8_t) initial >> 8, castlesStatus
+                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},  !white,
+                (uint8_t) (initial >> 8), castlesStatus
                 };
         } else {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
-                (uint8_t) initial >> 48, castlesStatus
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
+                (uint8_t) (initial >> 48), castlesStatus
                 };
         }
     }
@@ -88,14 +144,14 @@ struct Board {
         Squares nfinal = ~final;
         if constexpr (white) {
             return {
-                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, 
+                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                 0, castlesStatus
                 };
         } else {
             return {
-                {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}, 
+                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
         }
@@ -103,70 +159,65 @@ struct Board {
 
     template<bool white, int piece>
     Board pawnPromote(Squares initial, Squares final) const {
-        switch constexpr (piece)
-        {
-        case 2: // queen
+        if constexpr (piece == 2) { // queen
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights, wP.queens ^ final, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights, wP.queens ^ final, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights, bP.queens ^ final, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights, bP.queens ^ final, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 3: // rook
+        }
+        if constexpr (piece == 3) { // rook
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks ^ final, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns ^ initial, wP.rooks ^ final, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns ^ initial, bP.rooks ^ final, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns ^ initial, bP.rooks ^ final, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 4: // bishop
+        }
+        if constexpr (piece == 4) { // bishop
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops ^ final, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops ^ final, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns ^ initial, bP.rooks, bP.bishops ^ final, bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns ^ initial, bP.rooks, bP.bishops ^ final, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 5: // knight
+        }
+        if constexpr (piece == 5) { // knight
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ final, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ final, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights ^ final, bP.queens, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights ^ final, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        default:
-            break;
         }
         return {Pieces(), Pieces(), 0, 0};
     }
@@ -175,70 +226,65 @@ struct Board {
     Board pawnPromoteCapture(Squares initial, Squares final) const {
         Squares nfinal = ~final;
 
-        switch constexpr (piece)
-        {
-        case 2: // queen
+        if constexpr (piece == 2) { // queen
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights, wP.queens ^ final, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights, wP.queens ^ final, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights, bP.queens ^ final, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights, bP.queens ^ final, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 3: // rook
+        }
+        if constexpr (piece == 3) { // rook
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks ^ final, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns ^ initial, wP.rooks ^ final, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns ^ initial, bP.rooks ^ final, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns ^ initial, bP.rooks ^ final, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 4: // bishop
+        }
+        if constexpr (piece == 4) { // bishop
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops ^ final, wP.knights, wP.queens, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops ^ final, wP.knights, wP.queens, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns ^ initial, bP.rooks, bP.bishops ^ final, bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns ^ initial, bP.rooks, bP.bishops ^ final, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 5: // knight
+        }
+        if constexpr (piece == 5) { // knight
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ final, wP.queens, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ final, wP.queens, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights ^ final, bP.queens, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns ^ initial, bP.rooks, bP.bishops, bP.knights ^ final, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        default:
-            break;
         }
         return {Pieces(), Pieces(), 0, 0};
     }
@@ -247,14 +293,14 @@ struct Board {
     Board pawnEnPassantCapture(Squares initial, Squares final) const {
         if constexpr (white) {
             return {
-                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns ^ (nfinal << 8), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns ^ (final << 8), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
         } else {
             return {
-                {wP.pawns ^ (nfinal >> 8), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, 
+                {wP.pawns ^ (final >> 8), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
         }
@@ -262,160 +308,151 @@ struct Board {
 
     template<bool white, int piece>
     Board pieceMove(Squares initial, Squares final) const {
-        switch constexpr (piece)
-        {
-        case 2: // queen
+        if constexpr (piece == 2) { // queen
             if constexpr (white) {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens ^ (initial | final), wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens ^ (initial | final), wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens ^ (initial | final), bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens ^ (initial | final), bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 3: // rook
+        }
+        if constexpr (piece == 3) { // rook
             if constexpr (white) {
                 uint8_t newCastleStatus = castlesStatus;
                 if (castlesStatus & 0b11) {
-                    if (_tzcnt_u64(initial)==0) castlesStatus &= 0b1;
-                    if (_tzcnt_u64(initial)==7) castlesStatus &= 0b10;
+                    if (_tzcnt_u64(initial)==0) newCastleStatus &= 0b1;
+                    if (_tzcnt_u64(initial)==7) newCastleStatus &= 0b10;
                 }
                 return {
-                    {wP.pawns, wP.rooks ^ (initial | final), wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns, wP.rooks ^ (initial | final), wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, newCastleStatus
                     };
             } else {
                 uint8_t newCastleStatus = castlesStatus;
                 if (castlesStatus & 0b1100) {
-                    if (_tzcnt_u64(initial)==56) castlesStatus &= 0b100;
-                    if (_tzcnt_u64(initial)==63) castlesStatus &= 0b1000;
+                    if (_tzcnt_u64(initial)==56) newCastleStatus &= 0b100;
+                    if (_tzcnt_u64(initial)==63) newCastleStatus &= 0b1000;
                 }
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks ^ (initial | final), bP.bishops, bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks ^ (initial | final), bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, newCastleStatus
                     };
             }
-            break;
-        case 4: // bishop
+        }
+        if constexpr (piece == 4) { // bishop
             if constexpr (white) {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops ^ (initial | final), wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns, wP.rooks, wP.bishops ^ (initial | final), wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops ^ (initial | final), bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops ^ (initial | final), bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 5: // knight
+        }
+        if constexpr (piece == 5) { // knight
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights ^ (initial | final), bP.queens, bP.king}, 
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights ^ (initial | final), bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        default:
-            break;
         }
         return {Pieces(), Pieces(), 0, 0};
     }
 
     template<bool white, int piece>
     Board pieceMoveCapture(Squares initial, Squares final) const {
-        switch constexpr (piece)
-        {
-        case 2: // queen
+        Squares nfinal = ~final;
+        if constexpr (piece == 2) { // queen
             if constexpr (white) {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens ^ (initial | final), wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens ^ (initial | final), wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens ^ (initial | final), bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens ^ (initial | final), bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 3: // rook
+        }
+        if constexpr (piece == 3) { // rook
             if constexpr (white) {
                 uint8_t newCastleStatus = castlesStatus;
                 if (castlesStatus & 0b11) {
-                    if (_tzcnt_u64(initial)==0) castlesStatus &= 0b1;
-                    if (_tzcnt_u64(initial)==7) castlesStatus &= 0b10;
+                    if (_tzcnt_u64(initial)==0) newCastleStatus &= 0b1;
+                    if (_tzcnt_u64(initial)==7) newCastleStatus &= 0b10;
                 }
                 return {
-                    {wP.pawns, wP.rooks ^ (initial | final), wP.bishops, wP.knights, wP.queens, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns, wP.rooks ^ (initial | final), wP.bishops, wP.knights, wP.queens, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, newCastleStatus
                     };
             } else {
                 uint8_t newCastleStatus = castlesStatus;
                 if (castlesStatus & 0b1100) {
-                    if (_tzcnt_u64(initial)==56) castlesStatus &= 0b100;
-                    if (_tzcnt_u64(initial)==63) castlesStatus &= 0b1000;
+                    if (_tzcnt_u64(initial)==56) newCastleStatus &= 0b100;
+                    if (_tzcnt_u64(initial)==63) newCastleStatus &= 0b1000;
                 }
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns, bP.rooks ^ (initial | final), bP.bishops, bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns, bP.rooks ^ (initial | final), bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                     0, newCastleStatus
                     };
             }
-            break;
-        case 4: // bishop
+        }
+        if constexpr (piece == 4) { // bishop
             if constexpr (white) {
                 return {
-                    {wP.pawns, wP.rooks, wP.bishops ^ (initial | final), wP.knights, wP.queens, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns, wP.rooks, wP.bishops ^ (initial | final), wP.knights, wP.queens, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops ^ (initial | final), bP.knights, bP.queens, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops ^ (initial | final), bP.knights, bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        case 5: // knight
+        }
+        if constexpr (piece == 5) { // knight
             if constexpr (white) {
                 return {
-                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king}
-                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                    {wP.pawns ^ initial, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
+                    {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                     0, castlesStatus
                     };
             } else {
                 return {
-                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                    {bP.pawns, bP.rooks, bP.bishops, bP.knights ^ (initial | final), bP.queens, bP.king}, 
+                    {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                    {bP.pawns, bP.rooks, bP.bishops, bP.knights ^ (initial | final), bP.queens, bP.king}, !white,
                     0, castlesStatus
                     };
             }
-            break;
-        default:
-            break;
         }
         return {Pieces(), Pieces(), 0, 0};
     }
@@ -424,14 +461,14 @@ struct Board {
     Board kingMoves(Squares initial, Squares final) const {
         if constexpr (white) {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king}
-                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights ^ (initial | final), wP.queens, wP.king},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, 0
                 };
         } else {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king ^ (initial | final)}, 
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king ^ (initial | final)}, !white,
                 0, 0
                 };
         }
@@ -439,16 +476,17 @@ struct Board {
 
     template<bool white>
     Board kingMovesCapture(Squares initial, Squares final) const {
+        Squares nfinal = ~final;
         if constexpr (white) {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king ^ (initial | final)}
-                {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king},
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king ^ (initial | final)},
+                {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
                 0, 0
                 };
         } else {
             return {
-                {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
-                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king ^ (initial | final)}, 
+                {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king ^ (initial | final)}, !white,
                 0, 0
                 };
         }
@@ -458,27 +496,27 @@ struct Board {
     Board castlesMove() const {
         if constexpr (white) {
             return {
-                {wP.pawns, wP.rooks ^ 0x0000000000000009ULL, wP.bishops, wP.knights, wP.queens, wP.king ^ 0x0000000000000014ULL}
-                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king},
+                {wP.pawns, wP.rooks ^ 0x0000000000000009ULL, wP.bishops, wP.knights, wP.queens, wP.king ^ 0x0000000000000014ULL},
+                {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, 0
                 };
         } else {
             return {
-                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king}
-                {bP.pawns, bP.rooks ^ 0x0900000000000000ULL, bP.bishops, bP.knights, bP.queens, bP.king ^ 0x1400000000000000ULL}, 
+                {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {bP.pawns, bP.rooks ^ 0x0900000000000000ULL, bP.bishops, bP.knights, bP.queens, bP.king ^ 0x1400000000000000ULL}, !white,
                 0, 0
                 };
         }
     }
 };
 
-Board checkMate() {
-    return {Pieces(), Pieces(), 0, 0b10000000};
-}
+// Board checkMate() {
+//     return {Pieces(), Pieces(), 0, 0b10000000};
+// }
 
-Board draw() {
-    return {Pieces(), Pieces(), 0, 0b01000000};
-}
+// Board draw() {
+//     return {Pieces(), Pieces(), 0, 0b01000000};
+// }
 
             // return {
             //     {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king}
