@@ -19,6 +19,12 @@ constexpr int pawnAdvance() {
 }
 
 template<bool isWhite>
+constexpr uint64_t pawnAdvanceShift(uint64_t pawn) {
+    if (isWhite) return pawn<<8;
+    else return pawn>>8;
+}
+
+template<bool isWhite>
 constexpr int enPassantFile() {
     return (isWhite ? 4 : 2);
 }

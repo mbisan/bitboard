@@ -179,10 +179,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;
         
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -192,10 +192,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;
         
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -205,10 +205,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
         
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 3>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -218,10 +218,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderRook(rookMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskHV & notSelf_n_checkMask;
         
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -233,10 +233,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
 
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -246,10 +246,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & notSelf_n_checkMask;;
 
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -259,10 +259,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
 
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 4>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -272,10 +272,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = sliderBishop(bishopMoves[pieceIndex], r.occupied, pieceIndex) & r.pinmaskD & notSelf_n_checkMask;
 
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 2>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -285,10 +285,10 @@ std::vector<Board> generateMoves(const Board &board) {
         Squares reachable = knightMoves[pieceIndex] & notSelf_n_checkMask;
 
         BitLoop2(reachable & esq) {
-            newMoves.push_back(board.pieceMove<isWhite, 5>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMoveCapture<isWhite, 5>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
         BitLoop2(reachable & nesq) {
-            newMoves.push_back(board.pieceMoveCapture<isWhite, 5>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pieceMove<isWhite, 5>(_blsi_u64(temp), _blsi_u64(temp2)));
         }
     }
 
@@ -298,18 +298,19 @@ std::vector<Board> generateMoves(const Board &board) {
     BitLoop(self.pawns & pinmask & pawnStartFile<isWhite>()) { // starting file pinned pawns
         uint64_t pieceIndex = bitFromSquare(temp);
 
-        Squares nocc_pinmask_checkmask = ~r.occupied & r.pinmaskHV & r.checkMask;
-        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & nocc_pinmask_checkmask) { // i.e. the square in front of the pawn is not occupied            
-            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
-
-            if (positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()] & nocc_pinmask_checkmask) { // i.e. 2 squares in front of pawn not occupied
-                newMoves.push_back(board.pawnPush<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()]));
+        Squares pawnIsolated = _blsi_u64(temp);
+        if (pawnAdvanceShift<isWhite>(pawnIsolated) & ~r.occupied) { // i.e. the square in front of the pawn is not occupied            
+            if (pawnAdvanceShift<isWhite>(pawnIsolated) & r.checkMask & r.pinmaskHV) {
+                newMoves.push_back(board.pawnForward<isWhite>(pawnIsolated, pawnAdvanceShift<isWhite>(pawnIsolated)));
+            }
+            if (positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()] & r.pinmaskHV & ~r.occupied & r.checkMask) { // i.e. 2 squares in front of pawn not occupied
+                newMoves.push_back(board.pawnPush<isWhite>(pawnIsolated, positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()]));
             }
         }
         Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & r.pinmaskD & enemy_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back(board.pawnCapture<isWhite>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pawnCapture<isWhite>(pawnIsolated, _blsi_u64(temp2)));
         }
     }
 
@@ -349,18 +350,19 @@ std::vector<Board> generateMoves(const Board &board) {
     BitLoop(self.pawns & ~pinmask & pawnStartFile<isWhite>()) { // starting file unpinned pawns
         uint64_t pieceIndex = bitFromSquare(temp);
 
-        Squares nocc_checkmask = ~r.occupied & r.checkMask;
-        if (positionToBit[pieceIndex + pawnAdvance<isWhite>()] & nocc_checkmask) { // i.e. the square in front of the pawn is not occupied            
-            newMoves.push_back(board.pawnForward<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + pawnAdvance<isWhite>()]));
-
-            if (positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()] & nocc_checkmask) { // i.e. 2 squares in front of pawn not occupied
-                newMoves.push_back(board.pawnPush<isWhite>(_blsi_u64(temp), positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()]));
+        Squares pawnIsolated = _blsi_u64(temp);
+        if (pawnAdvanceShift<isWhite>(pawnIsolated) & ~r.occupied) { // i.e. the square in front of the pawn is not occupied 
+            if (pawnAdvanceShift<isWhite>(pawnIsolated) & r.checkMask) {
+                newMoves.push_back(board.pawnForward<isWhite>(pawnIsolated, pawnAdvanceShift<isWhite>(pawnIsolated)));
+            }
+            if (positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()] & ~r.occupied & r.checkMask) { // i.e. 2 squares in front of pawn not occupied
+                newMoves.push_back(board.pawnPush<isWhite>(pawnIsolated, positionToBit[pieceIndex + 2 * pawnAdvance<isWhite>()]));
             }
         }
         Squares reachable = pawnAttacks<isWhite>()[pieceIndex] & enemy_n_checkMask;
 
         BitLoop2(reachable) {
-            newMoves.push_back(board.pawnCapture<isWhite>(_blsi_u64(temp), _blsi_u64(temp2)));
+            newMoves.push_back(board.pawnCapture<isWhite>(pawnIsolated, _blsi_u64(temp2)));
         }
     }
 
@@ -472,10 +474,41 @@ uint64_t traverse(const Board &initialPosition, int depth) {
 
 int main(void) {
 
+    const bool isWhite = true;
     Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
     b.isWhite = true; b.castlesStatus = 0b1111;
 
+    // c2c3
+    // const bool isWhite = false;
+    // Board b = positionToBoard("RNBQKBNR/PP1PPPPP/2P5/8/8/8/pppppppp/rnbqkbnr/-/W"); // rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1
+    // b.isWhite = isWhite; b.castlesStatus = 0b1111;
+
+    // d7d6
+    // const bool isWhite = true;
+    // Board b = positionToBoard("RNBQKBNR/PP1PPPPP/2P5/8/8/3p4/ppp1pppp/rnbqkbnr/-/W"); // rnbqkbnr/ppp1pppp/3p4/8/8/2P5/PP1PPPPP/RNBQKBNR w KQkq - 0 1
+    // b.isWhite = isWhite; b.castlesStatus = 0b1111;
+
+    // d1a4
+    // const bool isWhite = false;
+    // Board b = positionToBoard("RNB1KBNR/PP1PPPPP/2P5/Q7/8/3p4/ppp1pppp/rnbqkbnr/-/W"); // rnbqkbnr/ppp1pppp/3p4/8/8/2P5/PP1PPPPP/RNBQKBNR w KQkq - 0 1
+    // b.isWhite = isWhite; b.castlesStatus = 0b1111;
+
+    // const bool isWhite = false;
+    // Board b = positionToBoard("RNBQK1NR/PPPP1PPP/8/4P3/8/B7/pppppppp/r1bqkbnr/-/W"); // r1bqkbnr/pppppppp/n7/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
+    // b.isWhite = isWhite; b.castlesStatus = 0b1111;
+
     std::cout << boardToStr(b) << std::endl;
+
+    // auto initialmoves = generateMoves<isWhite>(b);
+    // auto initialmoves2 = generateMoves<!isWhite>(initialmoves[1]);
+
+    // display_int64(initialmoves[1].bP.knights)
+
+    // for (auto & move: initialmoves) std::cout << traverse(move, 1) << std::endl; 
+    // std::cout << initialmoves.size() << std::endl;
+
+    // for (auto & move: initialmoves) std::cout << boardToStr(move) << std::endl;
+    // std::cout << initialmoves.size() << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -484,8 +517,8 @@ int main(void) {
     std::cout << "Depth 3: " << (unsigned long) traverse(b, 3) << std::endl; // 8902
     std::cout << "Depth 4: " << (unsigned long) traverse(b, 4) << std::endl; // 197281
     std::cout << "Depth 5: " << (unsigned long) traverse(b, 5) << std::endl; // 4865609
-    // std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl; // 119060324
-    // std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl; // 3195901860
+    std::cout << "Depth 6: " << (unsigned long) traverse(b, 6) << std::endl; // 119060324
+    std::cout << "Depth 7: " << (unsigned long) traverse(b, 7) << std::endl; // 3195901860
 
     auto end_time = std::chrono::high_resolution_clock::now();
     
