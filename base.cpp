@@ -300,12 +300,12 @@ struct Board {
         if constexpr (white) {
             return {
                 {wP.pawns ^ (initial | final), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
-                {bP.pawns ^ (final << 8), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
+                {bP.pawns ^ (final >> 8), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
         } else {
             return {
-                {wP.pawns ^ (final >> 8), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
+                {wP.pawns ^ (final << 8), wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
                 {bP.pawns ^ (initial | final), bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
                 0, castlesStatus
                 };
@@ -409,8 +409,8 @@ struct Board {
             if constexpr (white) {
                 uint8_t newCastleStatus = castlesStatus;
                 if (castlesStatus & 0b11) {
-                    if (_tzcnt_u64(initial)==0) newCastleStatus &= 0b1;
-                    if (_tzcnt_u64(initial)==7) newCastleStatus &= 0b10;
+                    if (_tzcnt_u64(initial)==0) newCastleStatus ^= 0b1;
+                    if (_tzcnt_u64(initial)==7) newCastleStatus ^= 0b10;
                 }
                 return {
                     {wP.pawns, wP.rooks ^ (initial | final), wP.bishops, wP.knights, wP.queens, wP.king},
@@ -420,8 +420,8 @@ struct Board {
             } else {
                 uint8_t newCastleStatus = castlesStatus;
                 if (castlesStatus & 0b1100) {
-                    if (_tzcnt_u64(initial)==56) newCastleStatus &= 0b100;
-                    if (_tzcnt_u64(initial)==63) newCastleStatus &= 0b1000;
+                    if (_tzcnt_u64(initial)==56) newCastleStatus ^= 0b100;
+                    if (_tzcnt_u64(initial)==63) newCastleStatus ^= 0b1000;
                 }
                 return {
                     {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
@@ -469,13 +469,13 @@ struct Board {
             return {
                 {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king ^ (initial | final)},
                 {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b1100U
                 };
         } else {
             return {
                 {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
                 {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king ^ (initial | final)}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b0011U
                 };
         }
     }
@@ -487,13 +487,13 @@ struct Board {
             return {
                 {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king ^ (initial | final)},
                 {bP.pawns & nfinal, bP.rooks & nfinal, bP.bishops & nfinal, bP.knights & nfinal, bP.queens & nfinal, bP.king}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b1100U
                 };
         } else {
             return {
                 {wP.pawns & nfinal, wP.rooks & nfinal, wP.bishops & nfinal, wP.knights & nfinal, wP.queens & nfinal, wP.king},
                 {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king ^ (initial | final)}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b0011U
                 };
         }
     }
@@ -504,13 +504,13 @@ struct Board {
             return {
                 {wP.pawns, wP.rooks ^ 0x0000000000000009ULL, wP.bishops, wP.knights, wP.queens, wP.king ^ 0x0000000000000014ULL},
                 {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b1100U
                 };
         } else {
             return {
                 {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
                 {bP.pawns, bP.rooks ^ 0x0900000000000000ULL, bP.bishops, bP.knights, bP.queens, bP.king ^ 0x1400000000000000ULL}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b0011U
                 };
         }
     }
@@ -521,13 +521,13 @@ struct Board {
             return {
                 {wP.pawns, wP.rooks ^ 0x00000000000000a0ULL, wP.bishops, wP.knights, wP.queens, wP.king ^ 0x0000000000000050ULL},
                 {bP.pawns, bP.rooks, bP.bishops, bP.knights, bP.queens, bP.king}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b1100U
                 };
         } else {
             return {
                 {wP.pawns, wP.rooks, wP.bishops, wP.knights, wP.queens, wP.king},
                 {bP.pawns, bP.rooks ^ 0xa000000000000000ULL, bP.bishops, bP.knights, bP.queens, bP.king ^ 0x5000000000000000ULL}, !white,
-                0, 0
+                0, castlesStatus & (uint8_t)0b0011U
                 };
         }
     }

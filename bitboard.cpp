@@ -409,7 +409,7 @@ std::vector<Board> generateMoves(const Board &board) {
                 // self piece is part of pinD -> end square must be part of pinD
                 if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvance<isWhite>() + 1] & r.pinmaskD)) continue;
 
-                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex + pawnAdvance<isWhite>() + 1], positionToBit[pieceIndex + 1]));
+                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex], positionToBit[pieceIndex + pawnAdvance<isWhite>() + 1]));
             } 
             if (positionToBit[pieceIndex - 1] & enemyEnPassant) {
                 // check if the taken piece is not D pinned
@@ -417,7 +417,7 @@ std::vector<Board> generateMoves(const Board &board) {
                 // self piece is part of pinD -> end square must be part of pinD
                 if ((positionToBit[pieceIndex] & r.pinmaskD) && !(positionToBit[pieceIndex + pawnAdvance<isWhite>() - 1] & r.pinmaskD)) continue;
 
-                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex + pawnAdvance<isWhite>() - 1], positionToBit[pieceIndex - 1]));
+                newMoves.push_back(board.pawnEnPassantCapture<isWhite>(positionToBit[pieceIndex], positionToBit[pieceIndex + pawnAdvance<isWhite>() - 1]));
             }
         }
     }
@@ -478,10 +478,25 @@ int main(void) {
     Board b = positionToBoard("RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr/-/W");
     b.isWhite = true; b.castlesStatus = 0b1111;
 
-    // c2c3
+    // a2a4
     // const bool isWhite = false;
-    // Board b = positionToBoard("RNBQKBNR/PP1PPPPP/2P5/8/8/8/pppppppp/rnbqkbnr/-/W"); // rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1
+    // Board b = positionToBoard("RNBQKBNR/1PPPPPPP/8/P7/8/8/pppppppp/rnbqkbnr/-/W"); // rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1
     // b.isWhite = isWhite; b.castlesStatus = 0b1111;
+
+    // test castles rnbqkb1r/pp1p1ppp/2p2n2/4p3/8/5NP1/PPPPPPBP/RNBQK2R w KQkq - 0 1
+    // const bool isWhite = true;
+    // Board b = positionToBoard("RNBQ1RK1/PP1PPPBP/b1P2NP1/8/3pp3/2p2n2/pp111ppp/rnbqk11r/-/W");
+    // b.isWhite = isWhite; b.castlesStatus = 0b1100;
+
+    // a7a6
+    // const bool isWhite = true;
+    // Board b = positionToBoard("RNBQKBNR/1PPPPPPP/8/P7/8/p7/1ppppppp/rnbqkbnr/-/W"); // rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1
+    // b.isWhite = isWhite; b.castlesStatus = 0b1111;
+
+    // a4a5
+    // const bool isWhite = true;
+    // Board b = positionToBoard("RNBQKBNR/1PPPPPPP/8/8/Pp6/p7/11pppppp/rnbqkbnr/-/W"); // rnbqkbnr/pppppppp/8/8/8/2P5/PP1PPPPP/RNBQKBNR b KQkq - 0 1
+    // b.isWhite = isWhite; b.castlesStatus = 0b1111; b.enPassant = 0b00000010;
 
     // d7d6
     // const bool isWhite = true;
@@ -497,14 +512,14 @@ int main(void) {
     // Board b = positionToBoard("RNBQK1NR/PPPP1PPP/8/4P3/8/B7/pppppppp/r1bqkbnr/-/W"); // r1bqkbnr/pppppppp/n7/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1
     // b.isWhite = isWhite; b.castlesStatus = 0b1111;
 
-    std::cout << boardToStr(b) << std::endl;
+    // std::cout << boardToStr(b) << std::endl;
 
     // auto initialmoves = generateMoves<isWhite>(b);
-    // auto initialmoves2 = generateMoves<!isWhite>(initialmoves[1]);
+    // // auto initialmoves2 = generateMoves<!isWhite>(initialmoves[1]);
 
-    // display_int64(initialmoves[1].bP.knights)
+    // // display_int64(initialmoves[1].bP.knights)
 
-    // for (auto & move: initialmoves) std::cout << traverse(move, 1) << std::endl; 
+    // for (auto & move: initialmoves) std::cout << traverse(move, 2) << std::endl; 
     // std::cout << initialmoves.size() << std::endl;
 
     // for (auto & move: initialmoves) std::cout << boardToStr(move) << std::endl;
