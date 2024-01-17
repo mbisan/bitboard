@@ -11,12 +11,12 @@
 				"-march=native",
 				"-O3",
 				"-g",
-				"/home/martin/bitboard/bitboard.cpp",
+				"/home/mbikandi/Documents/bitboard/bitboard.cpp",
 				"-o",
-				"/home/martin/bitboard/bitboard"
+				"/home/mbikandi/Documents/bitboard/bitboard"
 			],
 			"options": {
-				"cwd": "/home/martin/bitboard/"
+				"cwd": "/home/mbikandi/Documents/bitboard/"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -27,11 +27,11 @@
 		{
 			"type": "shell",
 			"label": "C++: run",
-			"command": "/home/martin/bitboard/bitboard",
+			"command": "/home/mbikandi/Documents/bitboard/bitboard",
 			"args": [
 			],
 			"options": {
-				"cwd": "/home/martin/bitboard/"
+				"cwd": "/home/mbikandi/Documents/bitboard/"
 			},
 			"dependsOn": "C++: g++ compile",
 			"group": "build",
@@ -47,12 +47,12 @@
 				"-march=native",
 				"-O3",
 				"-g",
-				"/home/martin/bitboard/generateSliderLookup.cpp",
+				"/home/mbikandi/Documents/bitboard/generateSliderLookup.cpp",
 				"-o",
-				"/home/martin/bitboard/generateSliderLookup"
+				"/home/mbikandi/Documents/bitboard/generateSliderLookup"
 			],
 			"options": {
-				"cwd": "/home/martin/bitboard/"
+				"cwd": "/home/mbikandi/Documents/bitboard/"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -63,11 +63,11 @@
 		{
 			"type": "shell",
 			"label": "run slider lookup generate",
-			"command": "/home/martin/bitboard/generateSliderLookup",
+			"command": "/home/mbikandi/Documents/bitboard/generateSliderLookup",
 			"args": [
 			],
 			"options": {
-				"cwd": "/home/martin/bitboard/"
+				"cwd": "/home/mbikandi/Documents/bitboard/"
 			},
 			"dependsOn": "slidergenerate",
 			"group": "build",
