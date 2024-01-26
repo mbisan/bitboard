@@ -10,17 +10,16 @@
 
 typedef uint64_t Squares;
 
-Squares notAfile;
-Squares notHfile;
+Squares notAfile = 0xefefefefefefefefULL;
+Squares notHfile = 0xf7f7f7f7f7f7f7f7ULL;
 
-Squares wPawnStart;
-Squares bPawnStart;
-Squares wPawnMiddle;
-Squares bPawnMiddle;
-Squares wPawnLast;
-Squares bPawnLast;
-Squares wPawnEP;
-Squares bPawnEP;
+Squares wPawnStart = 0x000000000000ff00ULL;
+Squares bPawnStart = 0x00ff000000000000ULL;
+Squares PawnMiddle = 0x0000ffffffff0000ULL;
+Squares wPawnLast = bPawnStart;
+Squares bPawnLast = wPawnStart;
+Squares wPawnEP = 0x000000ff00000000ULL;
+Squares bPawnEP = 0x00000000ff000000ULL;
 
 Squares wLrookStart = 0x0000000000000001ULL;
 Squares wRrookStart = 0x0000000000000080ULL;
@@ -28,13 +27,47 @@ Squares bLrookStart = 0x0100000000000000ULL;
 Squares bRrookStart = 0x8000000000000000ULL;
 
 const struct GameState {
-    bool ep;
-    bool wL;
-    bool wR;
-    bool bL;
-    bool wL;
-    bool isWhite;
+    const bool ep;
+    const bool wL;
+    const bool wR;
+    const bool bL;
+    const bool bR;
+    const bool isWhite;
 
+    constexpr bool hasCastle() {
+        if (isWhite) return wL || wR;
+        else return bL || bR; 
+    }
+
+    constexpr bool enemyCastle() {
+        if (isWhite) return bL || bR;
+        else return wL || wR; 
+    }
+
+    constexpr GameState kingMove() {
+        if (isWhite) return {false, false, false, bL, bR, false};
+        else return {false, wL, wR, false, false, true};
+    }
+
+    constexpr GameState move() {
+        if (isWhite) return {false, wL, wR, bL, bR, false};
+        else return {false, wL, wR, bL, bR, true};
+    }
+
+    constexpr GameState LRookMove() {
+        if (isWhite) return {false, false, wR, bL, bR, false};
+        else return {false, wL, wR, false, bR, true};
+    }
+
+    constexpr GameState RRookMove() {
+        if (isWhite) return {false, wL, false, bL, bR, false};
+        else return {false, wL, wR, bL, false, true};
+    }
+
+    constexpr GameState pawnPush() {
+        if (isWhite) return {true, wL, wR, bL, bR, false};
+        else return {true, wL, wR, bL, bR, true};
+    }
 };
 
 struct Pieces {
@@ -48,6 +81,8 @@ struct Pieces {
     Pieces movePawn(Squares move) { return {k, q, r, b, n, p ^ move}; }
 
     Pieces remove(Squares pos) { return {k, q & pos, r & pos, b & pos, n & pos, p & pos}; } // pos contains ones except on the removed piece
+
+    Squares occupied() { return k|q|r|b|n|p; }
 };
 
 struct Board {
@@ -55,8 +90,20 @@ struct Board {
     // gamestate bits from left to right (isWhite: 1 bit) (castles w/b l/r: 4 bits) (enpassant: 1 bit) (draw: 1 bit) (chechmate: 1 bit)
     // masks to extract gamestate: isWhite: 0b00000001 castles: 0b00011110 enpassant: 0b00100000 game_ended: 0b11000000
 
+    template<GameState state>
+    Squares occupied() {
+        if constexpr (state.isWhite) return w.occupied();
+        else return b.occupied();
+    }
+
+    template<GameState state>
+    Squares enemy() {
+        if constexpr (state.isWhite) return b.occupied();
+        else return w.occupied();
+    }
+
     template<GameState state, int piece>
-    Board pieceMove(Squares move) {
+    Board pieceMove(Squares move) { // piece moves without captures
         if constexpr (state.isWhite) {
             if constexpr (piece == KING) return {w.moveKing(move), b, 0, state.kingMove()};
             if constexpr (piece == QUEEN) return {w.moveQueen(move), b, 0, state.move()};
@@ -64,10 +111,12 @@ struct Board {
             if constexpr (piece == KNIGHT) return {w.moveKnight(move), b, 0, state.move()};
             if constexpr (piece == PAWN) return {w.movePawn(move), b, 0, state.move()};
 
-            if constexpr (piece == ROOK && !state.hasCastle()) return {w, b.moveRook(move), 0, state.move()};
-            else { // check if move and initial rook positions coincide to remove castling possibility
-                if (move & wLrookStart) return {w, b.moveRook(move), 0, state.LRookMove()};
-                if (move & wRrookStart) return {w, b.moveRook(move), 0, state.RRookMove()};
+            if constexpr (piece == ROOK) {
+                if constexpr (!state.hasCastle()) return {w, b.moveRook(move), 0, state.move()};
+                else { // check if move and initial rook positions coincide to remove castling possibility
+                    if (move & wLrookStart) return {w, b.moveRook(move), 0, state.LRookMove()};
+                    if (move & wRrookStart) return {w, b.moveRook(move), 0, state.RRookMove()};
+                }
             }
         } else if (!state.isWhite && !state.hasCastle()) {
             if constexpr (piece == KING) return {w, b.moveKing(move), 0, state.kingMove()};
@@ -76,10 +125,12 @@ struct Board {
             if constexpr (piece == KNIGHT) return {w, b.moveKnight(move), 0, state.move()};
             if constexpr (piece == PAWN) return {w, b.movePawn(move), 0, state.move()};
 
-            if constexpr (piece == ROOK && !state.hasCastle()) return {w, b.moveRook(move), 0, state.move()};
-            else {
-                if (move & bLrookStart) return {w, b.moveRook(move), 0, state.LRookMove()};
-                if (move & bRrookStart) return {w, b.moveRook(move), 0, state.RRookMove()};
+            if constexpr (piece == ROOK) {
+                if constexpr (!state.hasCastle()) return {w, b.moveRook(move), 0, state.move()};
+                else {
+                    if (move & bLrookStart) return {w, b.moveRook(move), 0, state.LRookMove()};
+                    if (move & bRrookStart) return {w, b.moveRook(move), 0, state.RRookMove()};
+                }
             }
         }
     }
@@ -88,5 +139,39 @@ struct Board {
     Board pawnPush(Squares pawnSquare, Squares move) {
         if constexpr (state.isWhite) return {w.movePawn(move), b, pawnSquare, state.pawnPush()};
         else 
+    }
+
+    template<GameState state, int piece>
+    Board pieceMoveCapture(Squares move) { // piece moves with captures
+        Squares notmove = ~move;
+        if constexpr (state.isWhite) {
+            if constexpr (piece == KING) return {w.moveKing(move), b.remove(notmove), 0, state.kingMove()};
+            if constexpr (piece == QUEEN) return {w.moveQueen(move), b.remove(notmove), 0, state.move()};
+            if constexpr (piece == BISHOP) return {w.moveBishop(move), b.remove(notmove), 0, state.move()};
+            if constexpr (piece == KNIGHT) return {w.moveKnight(move), b.remove(notmove), 0, state.move()};
+            if constexpr (piece == PAWN) return {w.movePawn(move), b.remove(notmove), 0, state.move()};
+
+            if constexpr (piece == ROOK) {
+                if constexpr (!state.hasCastle()) return {w.moveRook(move), b.remove(notmove), 0, state.move()};
+                else {
+                    if (move & bLrookStart) return {w.moveRook(move), b.remove(notmove), 0, state.LRookMove()};
+                    if (move & bRrookStart) return {w.moveRook(move), b.remove(notmove), 0, state.RRookMove()};
+                }
+            }
+        } else if (!state.isWhite && !state.hasCastle()) {
+            if constexpr (piece == KING) return {w.remove(notmove), b.moveKing(move), 0, state.kingMove()};
+            if constexpr (piece == QUEEN) return {w.remove(notmove), b.moveQueen(move), 0, state.move()};
+            if constexpr (piece == BISHOP) return {w.remove(notmove), b.moveBishop(move), 0, state.move()};
+            if constexpr (piece == KNIGHT) return {w.remove(notmove), b.moveKnight(move), 0, state.move()};
+            if constexpr (piece == PAWN) return {w.remove(notmove), b.movePawn(move), 0, state.move()};
+
+            if constexpr (piece == ROOK) {
+                if constexpr (!state.hasCastle()) return {w.remove(notmove), b.moveRook(move), 0, state.move()};
+                else {
+                    if (move & bLrookStart) return {w.remove(notmove), b.moveRook(move), 0, state.LRookMove()};
+                    if (move & bRrookStart) return {w.remove(notmove), b.moveRook(move), 0, state.RRookMove()};
+                }
+            }
+        }
     }
 };
