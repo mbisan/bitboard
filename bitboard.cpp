@@ -116,7 +116,7 @@ statusReport check(const Pieces &self, const Pieces &enemy) {
     return {checkCount, kingIndex, checkMask, kingBan, pinHV, pinD, enemySeen, selfOcc, enemyOcc, epPin};
 }
 
-template<GameState state>
+template<GameState state> // probably have to change this to template<bool isWhite, bool ep, bool castleL, bool castleR>
 std::vector<Board> generateMoves(const Board &board) {
     Pieces self, enemy;
     if constexpr (state.isWhite) {
