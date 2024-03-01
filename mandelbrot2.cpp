@@ -35,31 +35,35 @@ int main(int argc, char* argv[])
     {
         const double curr_im = (2.0 * y) / max_y - 1.0; // range from -i to i
         unsigned char *buffer_line = buffer + y*max_x;
+
+        double curr_r[8];
+        double r[8] = {0.0};
+        double im[8] = {0.0};
+        double rsq[8];
+        double imsq[8];
+
         for (unsigned x = 0; x < max_x; ++x)
         {
-            double curr_r_values[8];
-            memcpy(curr_r_values, &xvalues[8*x], 8*sizeof(double));
+            memcpy(curr_r, &xvalues[8*x], 8*sizeof(double));
+            memset(r, 0.0, 8*sizeof(double));
+            memset(im, 0.0, 8*sizeof(double));
 
             unsigned char temp = 0xff;
-            for (unsigned bit = 0; bit < 8; bit++) {
-                const double curr_r = curr_r_values[bit];
-                
-                double r = 0.0;
-                double im = 0.0; 
-                double rsq, imsq;
-
-                // max iterations + 1 since the condition is checked before the recursion is applied, which gives the same result
-                for (unsigned i = 0; i < max_iterations; ++i) 
-                {
-                    rsq = r*r;
-                    imsq = im*im;
-                    if (rsq + imsq > 4.0) {
-                        temp ^= 0x80 >> bit;
-                        break;
+            for (unsigned i=0; i<max_iterations && temp; i++) {
+                unsigned j = 0;
+                for (unsigned char bit = 0x80; bit; bit >>= 1) {
+                    if (temp & bit) {
+                        rsq[j] = r[j]*r[j];
+                        imsq[j] = im[j]*im[j];
+                        if (rsq[j] + imsq[j] > 4.0) {
+                            temp ^= bit;
+                            continue;
+                        }
+                        im[j] = 2.0 * r[j]*im[j] + curr_im;
+                        r[j] = rsq[j] - imsq[j] + curr_r[j];
                     }
-                    im = 2.0 * r*im + curr_im;
-                    r = rsq - imsq + curr_r;
-                }                
+                    j++;
+                }
             }
             buffer_line[x] = temp;
         }
