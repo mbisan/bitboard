@@ -1,1 +1,4 @@
 Gigantua-1.6
+*.pbm
+*.o
+*.gpp_run

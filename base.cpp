@@ -92,8 +92,6 @@ struct Pieces {
 
 struct Board {
     Pieces w; Pieces b; uint64_t ep; GameState state; 
-    // gamestate bits from left to right (isWhite: 1 bit) (castles w/b l/r: 4 bits) (enpassant: 1 bit) (draw: 1 bit) (chechmate: 1 bit)
-    // masks to extract gamestate: isWhite: 0b00000001 castles: 0b00011110 enpassant: 0b00100000 game_ended: 0b11000000
 
     template<GameState state>
     Squares occupied() {
