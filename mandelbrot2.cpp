@@ -27,13 +27,13 @@ int main(int argc, char* argv[])
 
     for (unsigned x = 0; x < max_x*8; x++)
     {
-        xvalues[x] = (2.0 * x) / max_y - 1.5; // range from -1,5 to 0.5
+        xvalues[x] = ((float) (x + x)) / max_y - 1.5; // range from -1,5 to 0.5
     }
 
 #pragma omp parallel for
     for (unsigned y = 0; y < max_y; ++y)
     {
-        const double curr_im = (2.0 * y) / max_y - 1.0; // range from -i to i
+        const double curr_im = ((float) (y + y)) / max_y - 1.0; // range from -i to i
         unsigned char *buffer_line = buffer + y*max_x;
 
         double curr_r[8];
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
                             temp ^= bit;
                             continue;
                         }
-                        im[j] = 2.0 * r[j]*im[j] + curr_im;
+                        im[j] = (r[j] + r[j])*im[j] + curr_im;
                         r[j] = rsq[j] - imsq[j] + curr_r[j];
                     }
                     j++;
