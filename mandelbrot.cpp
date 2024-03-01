@@ -3,12 +3,18 @@
 #include <limits>
 #include <vector>
 
+#include <time.h>
+
 typedef unsigned char Byte;
 
 using namespace std;
 
 int main(int argc, char* argv[])
 {
+
+    clock_t start, end;
+    start = clock();
+
     const unsigned N              = max(0, (argc > 1) ? atoi(argv[1]) : 0);
     const unsigned width          = N;
     const unsigned height         = N;
@@ -83,6 +89,9 @@ int main(int argc, char* argv[])
     {
         fclose(out);
     }
+
+    end = clock();
+    printf("%f\n", (double) (end-start)/CLOCKS_PER_SEC);
 
     return 0;
 }
