@@ -16,8 +16,6 @@ int main(int argc, char* argv[])
     const unsigned max_y = max(0, (argc > 1) ? atoi(argv[1]) : 0); 
     const unsigned max_x = (max_y + 7) / 8;
     const unsigned max_iterations = 50;
-    const double limit = 2.0;
-    const double limit_sq = 4.0;
 
     FILE* out = (argc == 3) ? fopen(argv[2], "wb") : stdout;
 
