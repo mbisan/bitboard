@@ -5,12 +5,12 @@
 #include <cstdint>
 
 Board parseFEN(const std::string& fen) {
-    bool ep;
-    bool wL;
-    bool wR;
-    bool bL;
-    bool bR;
-    bool isWhite;
+    bool ep = 0;
+    bool wL = 0;
+    bool wR = 0;
+    bool bL = 0;
+    bool bR = 0;
+    bool isWhite = false;
 
     Pieces white, black;
     uint64_t ep = 0;
@@ -18,13 +18,11 @@ Board parseFEN(const std::string& fen) {
     // Parsing pieces
     int row = 7, col = 0;
 
-    uint64_t position = 
-    for (auto &ch: fen) {
-        if (isdigit(ch)) {
-
-        }
-    }
-    for (char& c : tokens[0]) {
+    uint64_t position = 0;
+    uint64_t string_position = 0;
+    for (auto c : fen) {
+        string_position++;
+        if (position > 64) break;
         if (c == '/') {
             row--;
             col = 0;
@@ -32,6 +30,7 @@ Board parseFEN(const std::string& fen) {
         }
         if (isdigit(c)) {
             col += c - '0';
+            position += c - '0';
         } else {
             uint64_t square = 1ULL << (row * 8 + col);
             switch (c) {
@@ -75,30 +74,43 @@ Board parseFEN(const std::string& fen) {
                     break;
             }
             col++;
+            position++;
         }
     }
 
-    // Parsing side to move
-    // tokens[1] should contain either 'w' or 'b'
-    // Ignoring this for now, as it's not directly used in the board representation provided
-
-    // Parsing castling availability
-    // tokens[2] contains castling availability
-    // Ignoring this for now, as it's not directly used in the board representation provided
-
-    // Parsing en passant target square
-    if (tokens[3] != "-") {
-        int file = tokens[3][0] - 'a';
-        int rank = 8 - (tokens[3][1] - '0');
-        ep = 1ULL << (rank * 8 + file);
+    string_position++;
+    if (fen[string_position] == 'w') {
+        isWhite = true;
     }
+    string_position+=2;
 
-    // Parsing halfmove clock and fullmove number
-    // Ignoring these for now, as they're not directly used in the board representation provided
-
-    return {white, black, ep, state};
+    while (fen[string_position] != ' ') {
+        switch (fen[string_position])
+        {
+        case 'K':
+            wL = true;
+            break;
+        case 'Q':
+            wR = true;
+            break;
+        case 'k':
+            bL = true;
+            break;
+        case 'q':
+            bR = true;
+            break;        
+        default:
+            break;
+        }
+        string_position++;
+    }
+    // ep TODO
+    return {white, black, ep, {ep, wL, wR, bL, bR, isWhite}};
 }
 
+void displayBoard(const Board& board) {
+    
+}
 
 void perft(int depth) {
 
