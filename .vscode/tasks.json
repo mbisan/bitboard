@@ -11,9 +11,9 @@
 				"-march=native",
 				"-O3",
 				"-g",
-				"/home/mbikandi/Documents/bitboard/bitboard.cpp",
+				"/home/mbikandi/Documents/bitboard/main.cpp",
 				"-o",
-				"/home/mbikandi/Documents/bitboard/bitboard"
+				"/home/mbikandi/Documents/bitboard/main_test"
 			],
 			"options": {
 				"cwd": "/home/mbikandi/Documents/bitboard/"
@@ -27,7 +27,7 @@
 		{
 			"type": "shell",
 			"label": "C++: run",
-			"command": "/home/mbikandi/Documents/bitboard/bitboard",
+			"command": "/home/mbikandi/Documents/bitboard/main_test",
 			"args": [
 			],
 			"options": {

@@ -3,6 +3,31 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <iostream>
+
+const char PIECES[13][4] { "♔", // index 0
+    "♕", "♖", "♗", "♘", "♙", "♚", "♛", "♜", "♝", "♞", "♟", " " // index 12
+};
+
+void displaySquare(bool color, int piece) {
+    if (color) {
+        std::cout << "\033[43m" << PIECES[piece] << " \033[0m";  // White background
+    } else {
+        std::cout << "\033[46m" << PIECES[piece] << " \033[0m";  // Black background
+    }
+}
+
+
+void print_uint64t(uint64_t num) {
+    for (int row=7; row>=0; row--) {
+        for (int col=0; col<8; col++) {
+            if (num >> (8*row + col) & 0b1) std::cout << "X";
+            else std::cout << "-";           
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+}
 
 Board parseFEN(const std::string& fen) {
     bool ep = 0;
@@ -12,8 +37,9 @@ Board parseFEN(const std::string& fen) {
     bool bR = 0;
     bool isWhite = false;
 
-    Pieces white, black;
-    uint64_t ep = 0;
+    Pieces white = {0, 0, 0, 0, 0, 0};
+    Pieces black = {0, 0, 0, 0, 0, 0};
+    uint64_t enp = 0;
 
     // Parsing pieces
     int row = 7, col = 0;
@@ -22,7 +48,7 @@ Board parseFEN(const std::string& fen) {
     uint64_t string_position = 0;
     for (auto c : fen) {
         string_position++;
-        if (position > 64) break;
+        if (position >= 64) break;
         if (c == '/') {
             row--;
             col = 0;
@@ -78,7 +104,6 @@ Board parseFEN(const std::string& fen) {
         }
     }
 
-    string_position++;
     if (fen[string_position] == 'w') {
         isWhite = true;
     }
@@ -105,19 +130,63 @@ Board parseFEN(const std::string& fen) {
         string_position++;
     }
     // ep TODO
-    return {white, black, ep, {ep, wL, wR, bL, bR, isWhite}};
+    return {white, black, enp, {ep, wL, wR, bL, bR, isWhite}};
 }
 
 void displayBoard(const Board& board) {
-    
+    Squares wocc = board.w.occupied();
+    Squares bocc = board.b.occupied();
+    Squares occupied = wocc | bocc;
+
+    for (int row=7; row>=0; row--) {
+        for (int col=0; col<8; col++) {
+            Squares a = 0b1ULL << (8*row + col);
+
+            bool background = (row+col)%2;
+            if (bocc & a) { // found square occupied by white piece
+                if (board.b.k & a) displaySquare(background, 6);
+                if (board.b.q & a) displaySquare(background, 7);
+                if (board.b.r & a) displaySquare(background, 8);
+                if (board.b.b & a) displaySquare(background, 9);
+                if (board.b.n & a) displaySquare(background, 10);
+                if (board.b.p & a) displaySquare(background, 11);
+            }
+            else if (wocc & a) { // found square occupied by white piece
+                if (board.w.k & a) displaySquare(background, 0);
+                if (board.w.q & a) displaySquare(background, 1);
+                if (board.w.r & a) displaySquare(background, 2);
+                if (board.w.b & a) displaySquare(background, 3);
+                if (board.w.n & a) displaySquare(background, 4);
+                if (board.w.p & a) displaySquare(background, 5);
+            }
+            else {
+                displaySquare(background, 12);
+            }
+        }
+        std::cout << std::endl;
+    }
 }
 
 void perft(int depth) {
-
+    return;
 }
 
 
 
 int main() {
+    std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ ";
 
+    Board board = parseFEN(initial);
+    if (board.state.isWhite) std::cout << "White moves - ";
+    if (board.state.wL) std::cout << "white LCastle - ";
+    if (board.state.wR) std::cout << "White RCastle - ";
+    if (board.state.bL) std::cout << "black LCastle - ";
+    if (board.state.bR) std::cout << "black RCastle - ";
+    std::cout << std::endl;
+
+    Board moveE4 = board.pawnPush(0x00000100ULL, 0x1000100ULL);
+
+    displayBoard(moveE4);
+
+    return 0;
 }
