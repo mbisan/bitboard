@@ -165,28 +165,113 @@ void displayBoard(const Board& board) {
         }
         std::cout << std::endl;
     }
+    if (board.state.isWhite) std::cout << "w - ";
+    else std::cout << "b - ";
+    if (board.state.wL) std::cout << "Q";
+    if (board.state.wR) std::cout << "K";
+    if (board.state.bL) std::cout << "q";
+    if (board.state.bR) std::cout << "k";
+    std::cout << std::endl;
 }
 
-void perft(int depth) {
-    return;
+using FunctionPtr = std::vector<Board>(*)(Board&);
+
+FunctionPtr functionArray[64] = {
+    generateMoves<0, 0, 0, 0, 0, 0>,
+    generateMoves<1, 0, 0, 0, 0, 0>,
+    generateMoves<0, 1, 0, 0, 0, 0>,
+    generateMoves<1, 1, 0, 0, 0, 0>,
+    generateMoves<0, 0, 1, 0, 0, 0>,
+    generateMoves<1, 0, 1, 0, 0, 0>,
+    generateMoves<0, 1, 1, 0, 0, 0>,
+    generateMoves<1, 1, 1, 0, 0, 0>,
+    generateMoves<0, 0, 0, 1, 0, 0>,
+    generateMoves<1, 0, 0, 1, 0, 0>,
+    generateMoves<0, 1, 0, 1, 0, 0>,
+    generateMoves<1, 1, 0, 1, 0, 0>,
+    generateMoves<0, 0, 1, 1, 0, 0>,
+    generateMoves<1, 0, 1, 1, 0, 0>,
+    generateMoves<0, 1, 1, 1, 0, 0>,
+    generateMoves<1, 1, 1, 1, 0, 0>,
+    generateMoves<0, 0, 0, 0, 1, 0>,
+    generateMoves<1, 0, 0, 0, 1, 0>,
+    generateMoves<0, 1, 0, 0, 1, 0>,
+    generateMoves<1, 1, 0, 0, 1, 0>,
+    generateMoves<0, 0, 1, 0, 1, 0>,
+    generateMoves<1, 0, 1, 0, 1, 0>,
+    generateMoves<0, 1, 1, 0, 1, 0>,
+    generateMoves<1, 1, 1, 0, 1, 0>,
+    generateMoves<0, 0, 0, 1, 1, 0>,
+    generateMoves<1, 0, 0, 1, 1, 0>,
+    generateMoves<0, 1, 0, 1, 1, 0>,
+    generateMoves<1, 1, 0, 1, 1, 0>,
+    generateMoves<0, 0, 1, 1, 1, 0>,
+    generateMoves<1, 0, 1, 1, 1, 0>,
+    generateMoves<0, 1, 1, 1, 1, 0>,
+    generateMoves<1, 1, 1, 1, 1, 0>,
+    generateMoves<0, 0, 0, 0, 0, 1>,
+    generateMoves<1, 0, 0, 0, 0, 1>,
+    generateMoves<0, 1, 0, 0, 0, 1>,
+    generateMoves<1, 1, 0, 0, 0, 1>,
+    generateMoves<0, 0, 1, 0, 0, 1>,
+    generateMoves<1, 0, 1, 0, 0, 1>,
+    generateMoves<0, 1, 1, 0, 0, 1>,
+    generateMoves<1, 1, 1, 0, 0, 1>,
+    generateMoves<0, 0, 0, 1, 0, 1>,
+    generateMoves<1, 0, 0, 1, 0, 1>,
+    generateMoves<0, 1, 0, 1, 0, 1>,
+    generateMoves<1, 1, 0, 1, 0, 1>,
+    generateMoves<0, 0, 1, 1, 0, 1>,
+    generateMoves<1, 0, 1, 1, 0, 1>,
+    generateMoves<0, 1, 1, 1, 0, 1>,
+    generateMoves<1, 1, 1, 1, 0, 1>,
+    generateMoves<0, 0, 0, 0, 1, 1>,
+    generateMoves<1, 0, 0, 0, 1, 1>,
+    generateMoves<0, 1, 0, 0, 1, 1>,
+    generateMoves<1, 1, 0, 0, 1, 1>,
+    generateMoves<0, 0, 1, 0, 1, 1>,
+    generateMoves<1, 0, 1, 0, 1, 1>,
+    generateMoves<0, 1, 1, 0, 1, 1>,
+    generateMoves<1, 1, 1, 0, 1, 1>,
+    generateMoves<0, 0, 0, 1, 1, 1>,
+    generateMoves<1, 0, 0, 1, 1, 1>,
+    generateMoves<0, 1, 0, 1, 1, 1>,
+    generateMoves<1, 1, 0, 1, 1, 1>,
+    generateMoves<0, 0, 1, 1, 1, 1>,
+    generateMoves<1, 0, 1, 1, 1, 1>,
+    generateMoves<0, 1, 1, 1, 1, 1>,
+    generateMoves<1, 1, 1, 1, 1, 1>,
+};
+
+uint64_t perft(int depth, Board &initial) {
+
+    uint64_t counts = 0;
+
+    uint8_t currState = initial.state.stateToInt();
+
+    auto moves = functionArray[initial.state.stateToInt()](initial);
+    // std::cout << depth << " - " << moves.size() << std::endl;
+    if (depth==1) return moves.size();
+
+    for (auto newpos : moves) {
+        displayBoard(newpos);
+        counts += perft(depth-1, newpos);
+    }
+
+    return counts;
 }
 
 
 
 int main() {
-    std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ ";
+    std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kqKQ ";
+    std::string kokolo = "rnbqkbnr/ppp1pppp/8/3p4/8/2P5/PP1PPPPP/RNBQKBNR w KQkq ";
 
     Board board = parseFEN(initial);
-    if (board.state.isWhite) std::cout << "White moves - ";
-    if (board.state.wL) std::cout << "white LCastle - ";
-    if (board.state.wR) std::cout << "White RCastle - ";
-    if (board.state.bL) std::cout << "black LCastle - ";
-    if (board.state.bR) std::cout << "black RCastle - ";
-    std::cout << std::endl;
-
-    Board moveE4 = board.pawnPush(0x00000100ULL, 0x1000100ULL);
-
-    displayBoard(moveE4);
+    displayBoard(board);
+    std::cout << perft(2, board) << std::endl;
+    std::cout << perft(3, board) << std::endl;
+    std::cout << perft(4, board) << std::endl;
 
     return 0;
 }

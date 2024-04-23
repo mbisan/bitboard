@@ -72,6 +72,42 @@
 			"dependsOn": "slidergenerate",
 			"group": "build",
 			"detail": "run output"
-		}
+		},
+		{
+			"type": "cppbuild",
+			"label": "C++: g++ compile (desktop)",
+			"command": "/usr/bin/g++",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-std=c++2a",
+				"-march=native",
+				"-O3",
+				"-g",
+				"/home/martin/Documents/bitboard/main.cpp",
+				"-o",
+				"/home/martin/Documents/bitboard/main_test"
+			],
+			"options": {
+				"cwd": "/home/martin/Documents/bitboard/"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compilador: /usr/bin/g++"
+		},
+		{
+			"type": "shell",
+			"label": "C++: run (Desktop)",
+			"command": "/home/martin/Documents/bitboard/main_test",
+			"args": [
+			],
+			"options": {
+				"cwd": "/home/martin/Documents/bitboard/"
+			},
+			"dependsOn": "C++: g++ compile (desktop)",
+			"group": "build",
+			"detail": "run output"
+		},
 	]
 }
