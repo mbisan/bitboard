@@ -243,35 +243,223 @@ FunctionPtr functionArray[64] = {
     generateMoves<1, 1, 1, 1, 1, 1>,
 };
 
-uint64_t perft(int depth, Board &initial) {
+uint64_t perft(int depth, Board &initial, bool printDepth) {
 
     uint64_t counts = 0;
 
     uint8_t currState = initial.state.stateToInt();
 
     auto moves = functionArray[initial.state.stateToInt()](initial);
-    // std::cout << depth << " - " << moves.size() << std::endl;
+    if (depth == printDepth-1) std::cout << depth << " - " << moves.size() << std::endl;
     if (depth==1) return moves.size();
 
     for (auto newpos : moves) {
-        displayBoard(newpos);
-        counts += perft(depth-1, newpos);
+        if (depth == printDepth) displayBoard(newpos);
+        counts += perft(depth-1, newpos, printDepth);
     }
 
     return counts;
 }
 
+int charToCol(char c) {
+    switch (c)
+    {
+    case 'a':
+        return 0;
+    case 'b':
+        return 1;
+    case 'c':
+        return 2;
+    case 'd':
+        return 3;
+    case 'e':
+        return 4;
+    case 'f':
+        return 5;
+    case 'g':
+        return 6;
+    case 'h':
+        return 7;
+    default:
+        return 100;
+    }
+}
+
+int charToRow(char c) {
+    switch (c)
+    {
+    case '1':
+        return 0;
+    case '2':
+        return 1;
+    case '3':
+        return 2;
+    case '4':
+        return 3;
+    case '5':
+        return 4;
+    case '6':
+        return 5;
+    case '7':
+        return 6;
+    case '8':
+        return 7;
+    default:
+        return 100;
+    }
+}
+
+Squares parsePosition(std::string pos) {
+    int row0 = charToRow(pos[1]);
+    int col0 = charToCol(pos[0]);
+
+    if (row0*8+col0 > 63) return 0;
+
+    return 1ULL << (row0*8+col0);
+}
+
+void cli(void) {
+    std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ ";
+    Board board = parseFEN(initial);
+    std::string input;
+    while (true) {
+        getline(std::cin, input);
+
+        switch (input[0])
+        {
+        case 'f': // fen string
+            board = parseFEN(input);
+            break;
+        case 'r':
+            board = parseFEN(initial);
+            break;
+        case 'm': // in this case, the move should be either initial square, // final square i.e. a4b4 no castles yet
+            {
+                Squares initialbit = parsePosition(input.substr(2, 2));
+                Squares finalbit = parsePosition(input.substr(4, 2));
+
+                Squares occupied = board.b.occupied() | board.w.occupied();
+
+                // find piece
+                if (board.state.isWhite) {
+
+                    if ((board.w.occupied() & initialbit) && (~occupied & finalbit)) { // initial position is valid and final position is empty (not checked)!!
+                        if (board.w.k & initialbit) {
+                            board = board.pieceMove<KING>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.q & initialbit) {
+                            board = board.pieceMove<QUEEN>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.b & initialbit) {
+                            board = board.pieceMove<BISHOP>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.r & initialbit) {
+                            board = board.pieceMove<ROOK>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.n & initialbit) {
+                            board = board.pieceMove<KNIGHT>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.p & initialbit) {
+                            if ((initialbit >> 16) & finalbit) {
+                                board = board.pawnPush(initialbit, initialbit|finalbit);
+                                break;
+                            }
+                            board = board.pieceMove<PAWN>(initialbit|finalbit);
+                            break;
+                        }
+                    } else if ((board.w.occupied() & initialbit) && (board.b.occupied() & finalbit)) { // initial position is valid and final position is occupied by enemy!!
+                        if (board.w.k & initialbit) {
+                            board = board.pieceMoveCapture<KING>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.q & initialbit) {
+                            board = board.pieceMoveCapture<QUEEN>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.b & initialbit) {
+                            board = board.pieceMoveCapture<BISHOP>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.r & initialbit) {
+                            board = board.pieceMoveCapture<ROOK>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.n & initialbit) {
+                            board = board.pieceMoveCapture<KNIGHT>(initialbit|finalbit);
+                            break;
+                        } else if (board.w.p & initialbit) {
+                            board = board.pieceMoveCapture<PAWN>(initialbit|finalbit);
+                            break;
+                        }
+                    } 
+                } else { // black's turn
+
+                    if ((board.b.occupied() & initialbit) && (~occupied & finalbit)) { // initial position is valid and final position is empty (not checked)!!
+                        if (board.b.k & initialbit) {
+                            board = board.pieceMove<KING>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.q & initialbit) {
+                            board = board.pieceMove<QUEEN>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.b & initialbit) {
+                            board = board.pieceMove<BISHOP>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.r & initialbit) {
+                            board = board.pieceMove<ROOK>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.n & initialbit) {
+                            board = board.pieceMove<KNIGHT>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.p & initialbit) {
+                            if ((initialbit << 16) & finalbit) {
+                                board = board.pawnPush(initialbit, initialbit|finalbit);
+                                break;
+                            }
+                            board = board.pieceMove<PAWN>(initialbit|finalbit);
+                            break;
+                        }
+                    } else if ((board.b.occupied() & initialbit) && (board.w.occupied() & finalbit)) { // initial position is valid and final position is occupied by enemy!!
+                        if (board.b.k & initialbit) {
+                            board = board.pieceMoveCapture<KING>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.q & initialbit) {
+                            board = board.pieceMoveCapture<QUEEN>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.b & initialbit) {
+                            board = board.pieceMoveCapture<BISHOP>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.r & initialbit) {
+                            board = board.pieceMoveCapture<ROOK>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.n & initialbit) {
+                            board = board.pieceMoveCapture<KNIGHT>(initialbit|finalbit);
+                            break;
+                        } else if (board.b.p & initialbit) {
+                            board = board.pieceMoveCapture<PAWN>(initialbit|finalbit);
+                            break;
+                        }
+                    } 
+                }
+
+                break;
+            }
+        case 'p': // print
+            displayBoard(board);
+            break;
+        case 'e': // eval, will be e (number)
+            {   
+                int perftn = atoi(input.substr(2, input.size()-2).c_str());
+                std::cout << perft(perftn, board, perftn) << std::endl;
+                break;
+            }
+        default:
+            std::cout << "Ignore " << input << std::endl;
+            break;
+        }
+    }
+}
+
 
 
 int main() {
-    std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b kqKQ ";
-    std::string kokolo = "rnbqkbnr/ppp1pppp/8/3p4/8/2P5/PP1PPPPP/RNBQKBNR w KQkq ";
 
-    Board board = parseFEN(initial);
-    displayBoard(board);
-    std::cout << perft(2, board) << std::endl;
-    std::cout << perft(3, board) << std::endl;
-    std::cout << perft(4, board) << std::endl;
+    cli();
 
     return 0;
 }

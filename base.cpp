@@ -32,12 +32,12 @@ Squares bLCastleSeen = 0x0e00000000000000ULL;
 Squares bRCastleSeen = 0x6000000000000000ULL;
 
 struct GameState {
-    const bool ep;
-    const bool wL;
-    const bool wR;
-    const bool bL;
-    const bool bR;
-    const bool isWhite;
+    bool ep;
+    bool wL;
+    bool wR;
+    bool bL;
+    bool bR;
+    bool isWhite;
 
     constexpr GameState(bool ep_, bool wL_, bool wR_, bool bL_, bool bR_, bool isWhite_)
         : ep(ep_), wL(wL_), wR(wR_), bL(bL_), bR(bR_), isWhite(isWhite_) {}
@@ -100,16 +100,9 @@ struct Pieces {
 struct Board {
     Pieces w; Pieces b; uint64_t ep; GameState state; 
 
-    template<GameState state>
-    Squares occupied() {
-        if constexpr (state.isWhite) return w.occupied();
-        else return b.occupied();
-    }
-
-    template<GameState state>
-    Squares enemy() {
-        if constexpr (state.isWhite) return b.occupied();
-        else return w.occupied();
+    constexpr Board &operator=(const Board& board) {
+        w = board.w; b = board.b; ep = board.ep; state = board.state;
+        return *this;
     }
 
     template<int piece>
