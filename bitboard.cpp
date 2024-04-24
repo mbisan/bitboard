@@ -185,7 +185,7 @@ std::vector<Board> generateMoves(Board &board) {
     // bishop moves
     {
         // pinned
-        for (Squares pinnedBishops = self.r & res.pinD; pinnedBishops; pinnedBishops = _blsr_u64(pinnedBishops)) {
+        for (Squares pinnedBishops = self.b & res.pinD; pinnedBishops; pinnedBishops = _blsr_u64(pinnedBishops)) {
             Squares current = _blsi_u64(pinnedBishops);
             uint64_t pieceIndex = _tzcnt_u64(pinnedBishops);
             Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinD;
@@ -194,7 +194,7 @@ std::vector<Board> generateMoves(Board &board) {
             BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<BISHOP>(_blsi_u64(temp) | current)); }
         }
         // not pinned
-        for (Squares unpinnedBishops = self.r & notpin; unpinnedBishops; unpinnedBishops = _blsr_u64(unpinnedBishops)) {
+        for (Squares unpinnedBishops = self.b & notpin; unpinnedBishops; unpinnedBishops = _blsr_u64(unpinnedBishops)) {
             Squares current = _blsi_u64(unpinnedBishops);
             uint64_t pieceIndex = _tzcnt_u64(unpinnedBishops);
             Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask;
@@ -278,86 +278,93 @@ std::vector<Board> generateMoves(Board &board) {
         BitLoop(pawnAdvance & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 8;
-            else final = current >> 8;            
-            out.push_back(board.pieceMove<PAWN>(current | final)); 
+            else final = current >> 8;
+            if (final & notselfCheckmask) out.push_back(board.pieceMove<PAWN>(current | final)); 
         }
         BitLoop(pawnPush & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 16;
             else final = current >> 16;
-            out.push_back(board.pawnPush(current, current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pawnPush(current, current | final)); 
         }
         BitLoop(pawnCaptureL & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 7;
             else final = current >> 7;
-            out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
         }
         BitLoop(pawnCaptureR & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
-            out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
         }
         // pinned
         BitLoop(pawnAdvance & res.pinHV) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;            
-            if (final & res.pinHV) out.push_back(board.pieceMove<PAWN>(current | final)); 
+            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pieceMove<PAWN>(current | final)); 
         }
         BitLoop(pawnPush & res.pinHV) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 16;
             else final = current >> 16;
-            if (final & res.pinHV) out.push_back(board.pawnPush(current, current | final)); 
+            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pawnPush(current, current | final)); 
         }
         BitLoop(pawnCaptureL & res.pinD) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 7;
             else final = current >> 7;
-            if (final & res.pinD) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & res.pinD & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
         }
         BitLoop(pawnCaptureR & res.pinD) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
-            if (final & res.pinD) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & res.pinD & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
         }
         // not pinned promotion
         BitLoop(pawnAdvancePromote & notpin) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;
-            out.push_back(board.pawnPromote<QUEEN>(current, final));
-            out.push_back(board.pawnPromote<ROOK>(current, final)); 
-            out.push_back(board.pawnPromote<BISHOP>(current, final));
-            out.push_back(board.pawnPromote<KNIGHT>(current, final));
+            if (final & notselfCheckmask) {
+                out.push_back(board.pawnPromote<QUEEN>(current, final));
+                out.push_back(board.pawnPromote<ROOK>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+            }
+
         }
         BitLoop(pawnCaptureLpromote & notpin) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 7;
             else final = current >> 7;
-            out.push_back(board.pawnPromote<QUEEN>(current, final));
-            out.push_back(board.pawnPromote<ROOK>(current, final)); 
-            out.push_back(board.pawnPromote<BISHOP>(current, final));
-            out.push_back(board.pawnPromote<KNIGHT>(current, final));
+            if (final & notselfCheckmask) {
+                out.push_back(board.pawnPromote<QUEEN>(current, final));
+                out.push_back(board.pawnPromote<ROOK>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+            }
         }
         BitLoop(pawnCaptureRpromote & notpin) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
-            out.push_back(board.pawnPromote<QUEEN>(current, final));
-            out.push_back(board.pawnPromote<ROOK>(current, final)); 
-            out.push_back(board.pawnPromote<BISHOP>(current, final));
-            out.push_back(board.pawnPromote<KNIGHT>(current, final));
+            if (final & notselfCheckmask) {
+                out.push_back(board.pawnPromote<QUEEN>(current, final));
+                out.push_back(board.pawnPromote<ROOK>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+            }
         }
         // pinned promotion
         BitLoop(pawnAdvancePromote & res.pinHV) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;
-            if (final & res.pinHV) {
+            if (final & res.pinHV & notselfCheckmask) {
                 out.push_back(board.pawnPromote<QUEEN>(current, final));
                 out.push_back(board.pawnPromote<ROOK>(current, final)); 
                 out.push_back(board.pawnPromote<BISHOP>(current, final));
@@ -368,7 +375,7 @@ std::vector<Board> generateMoves(Board &board) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 7;
             else final = current >> 7;
-            if (final & res.pinHV) {
+            if (final & res.pinHV & notselfCheckmask) {
                 out.push_back(board.pawnPromote<QUEEN>(current, final));
                 out.push_back(board.pawnPromote<ROOK>(current, final)); 
                 out.push_back(board.pawnPromote<BISHOP>(current, final));
@@ -379,7 +386,7 @@ std::vector<Board> generateMoves(Board &board) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
-            if (final & res.pinD) {
+            if (final & res.pinD & notselfCheckmask) {
                 out.push_back(board.pawnPromote<QUEEN>(current, final));
                 out.push_back(board.pawnPromote<ROOK>(current, final)); 
                 out.push_back(board.pawnPromote<BISHOP>(current, final));
@@ -390,18 +397,30 @@ std::vector<Board> generateMoves(Board &board) {
 
     // enpassant
     if constexpr (ep) {
-        Squares epL = board.ep & (self.p >> 1) & ~res.epPin;
-        Squares epR = board.ep & (self.p << 1) & ~res.epPin;
-        
-        Squares enemyPawnBehind;
-        if constexpr (isWhite) enemyPawnBehind = epL >> 8;
-        else enemyPawnBehind = epL << 8;
+        if (board.ep & ~res.pinD) { // enemy pawn is diagonal pinned (for self), cannot remove it
 
-        if (epL) {
-            out.push_back(board.pieceMoveCapture<PAWN>(board.ep | epL | enemyPawnBehind));
-        }
-        if (epR) {
-            out.push_back(board.pieceMoveCapture<PAWN>(board.ep | epR | enemyPawnBehind));
+            Squares enemyPawnBehind;
+            if constexpr (isWhite) enemyPawnBehind = board.ep >> 8;
+            else enemyPawnBehind = board.ep << 8;
+
+            // board.ep is the square of the enemy pawn that pushed
+            if (board.ep & notAfile) { // can capture e.p. to the right
+
+                // pawn must be to the left, not e.p. pinned and not HV pinned
+                Squares pawnToTheLeft = (board.ep << 1) & self.p & ~res.epPin & ~res.pinHV;
+                
+                // if the pawn is not diagonally pinned 
+                if ((pawnToTheLeft & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheLeft | enemyPawnBehind));
+                else if ((pawnToTheLeft & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheLeft | enemyPawnBehind));
+            } else if (board.ep & notHfile) { // can capture e.p. to the right
+
+                // pawn must be to the left, not e.p. pinned and not HV pinned
+                Squares pawnToTheRight = (board.ep >> 1) & self.p & ~res.epPin & ~res.pinHV;
+                
+                // if the pawn is not diagonally pinned 
+                if ((pawnToTheRight & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheRight | enemyPawnBehind));
+                else if ((pawnToTheRight & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheRight | enemyPawnBehind));
+            }
         }
     }
 

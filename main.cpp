@@ -243,7 +243,7 @@ FunctionPtr functionArray[64] = {
     generateMoves<1, 1, 1, 1, 1, 1>,
 };
 
-uint64_t perft(int depth, Board &initial, bool printDepth) {
+uint64_t perft(int depth, Board &initial, int printDepth) {
 
     uint64_t counts = 0;
 
@@ -320,6 +320,7 @@ Squares parsePosition(std::string pos) {
 
 void cli(void) {
     std::string initial = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w kqKQ ";
+    // "rnbqkbnr/ppp1pppp/8/1B1p4/4P3/8/PPPP1PPP/RNBQK1NR b kqKQ "
     Board board = parseFEN(initial);
     std::string input;
     while (true) {
@@ -328,7 +329,7 @@ void cli(void) {
         switch (input[0])
         {
         case 'f': // fen string
-            board = parseFEN(input);
+            board = parseFEN(input.substr(2, input.size()-2));
             break;
         case 'r':
             board = parseFEN(initial);
