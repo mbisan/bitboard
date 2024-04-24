@@ -427,23 +427,23 @@ std::vector<Board> generateMoves(Board &board) {
     // castles
     if constexpr (isWhite) {
         if constexpr (wL) {
-            if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & wLCastleSeen)) {
+            if (res.checkCount == 0 && !((res.enemySeen | occ) & wLCastleSeen)) {
                 out.push_back(board.castleL<isWhite>());
             }
         }
         if constexpr (wR) {
-            if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & wRCastleSeen)) {
+            if (res.checkCount == 0 && !((res.enemySeen | occ) & wRCastleSeen)) {
                 out.push_back(board.castleR<isWhite>());
             }
         }
     } else {
         if constexpr (bL) {
-            if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & bLCastleSeen)) {
+            if (res.checkCount == 0 && !((res.enemySeen | occ) & bLCastleSeen)) {
                 out.push_back(board.castleL<isWhite>());
             }
         }
         if constexpr (bR) {
-            if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & bRCastleSeen)) {
+            if (res.checkCount == 0 && !((res.enemySeen | occ) & bRCastleSeen)) {
                 out.push_back(board.castleR<isWhite>());
             }
         }

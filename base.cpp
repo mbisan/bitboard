@@ -151,8 +151,8 @@ struct Board {
 
     template<bool isWhite>
     Board pawnEP(Squares pawnSquare, Squares move) {
-        if constexpr (isWhite) return {w.movePawn(move), b.remove(pawnSquare), 0, state.move<isWhite>()};
-        else return {w.remove(pawnSquare), b.movePawn(move), 0, state.move<isWhite>()};
+        if constexpr (isWhite) return {w.movePawn(move), b.remove(~pawnSquare), 0, state.move<isWhite>()};
+        else return {w.remove(~pawnSquare), b.movePawn(move), 0, state.move<isWhite>()};
     }
 
     template<int piece, bool isWhite>

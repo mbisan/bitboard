@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <iostream>
+#include <chrono>
 
 const char PIECES[13][4] { "♔", // index 0
     "♕", "♖", "♗", "♘", "♙", "♚", "♛", "♜", "♝", "♞", "♟", " " // index 12
@@ -171,6 +172,9 @@ void displayBoard(const Board& board) {
     if (board.state.wR) std::cout << "K";
     if (board.state.bL) std::cout << "q";
     if (board.state.bR) std::cout << "k";
+
+    std::string inttoletter = "abcdefgh";
+    if (board.state.ep) std::cout << " - " << inttoletter[_tzcnt_u64(board.ep) % 8] << (_tzcnt_u64(board.ep) / 8) + 1;
     std::cout << std::endl;
 }
 
@@ -286,15 +290,15 @@ uint64_t perft(int depth, Board &initial, int printDepth) {
     auto moves = functionArray[initial.state.stateToInt()](initial);
     // if (depth == printDepth-1) std::cout << moves.size() << std::endl;
     if (depth==1) return moves.size();
-    if (moves.size() == 0) std::cout << "Checkmate" << std::endl;
+    // if (moves.size() == 0) std::cout << "Checkmate" << std::endl;
 
     for (auto newpos : moves) {
         currCount = perft(depth-1, newpos, printDepth);
-        if (depth == printDepth) {
-            // displayBoard(newpos);
-            findMove(initial, newpos);
-            std::cout << currCount << std::endl;
-        }
+        // if (depth == printDepth) {
+        //     displayBoard(newpos);
+        //     findMove(initial, newpos);
+        //     std::cout << currCount << std::endl;
+        // }
         counts += currCount;
     }
 
@@ -487,8 +491,14 @@ void cli(void) {
         case 'e': // eval, will be e (number)
             {   
                 int perftn = atoi(input.substr(2, input.size()-2).c_str());
+
+                auto start_time = std::chrono::high_resolution_clock::now();
                 uint64_t tot = perft(perftn, board, perftn);
+                auto end_time = std::chrono::high_resolution_clock::now();
+
                 std::cout << "Total: " << tot << std::endl;
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+                std::cout << "Execution time: " << duration.count() << " microseconds" << std::endl;
                 break;
             }
         case 'n': // eval, will be e (number)
@@ -496,6 +506,13 @@ void cli(void) {
                 int perftn = atoi(input.substr(2, input.size()-2).c_str());
                 uint64_t tot = perft(perftn, board, 200);
                 std::cout << "Total: " << tot << std::endl;
+                break;
+            }
+        case 'l':
+            {
+                auto moves = functionArray[board.state.stateToInt()](board);
+                int perftn = atoi(input.substr(2, input.size()-2).c_str());
+                board = moves[perftn];
                 break;
             }
         default:
