@@ -243,19 +243,58 @@ FunctionPtr functionArray[64] = {
     generateMoves<1, 1, 1, 1, 1, 1>,
 };
 
+void findMove(Board &initial, Board &newpos) {
+    Squares iwocc = initial.w.occupied();
+    Squares ibocc = initial.b.occupied();
+    Squares nwocc = newpos.w.occupied();
+    Squares nbocc = newpos.b.occupied();
+
+    std::string inttoletter = "abcdefgh";
+
+    uint64_t startIndex, endIndex;
+    bool iscapture;
+
+    if (_blsr_u64(iwocc ^ nwocc)) {// move is white
+        Squares changes = iwocc ^ nwocc;
+
+        startIndex = _tzcnt_u64(changes & iwocc);
+        endIndex = _tzcnt_u64(changes & nwocc);
+
+        iscapture = ibocc ^ nbocc;
+    } else { // move is black
+        Squares changes = ibocc ^ nbocc;
+
+        startIndex = _tzcnt_u64(changes & ibocc);
+        endIndex = _tzcnt_u64(changes & nbocc);
+
+        iscapture = iwocc ^ nwocc;
+    }
+
+    // print
+    std::cout << inttoletter[startIndex % 8] << (((int) startIndex) / 8) + 1 << inttoletter[endIndex % 8] << (((int) endIndex) / 8) + 1;
+    if (iscapture) std::cout << " x";
+    std::cout << ": ";
+}
+
 uint64_t perft(int depth, Board &initial, int printDepth) {
 
     uint64_t counts = 0;
+    uint64_t currCount = 0;
 
     uint8_t currState = initial.state.stateToInt();
 
     auto moves = functionArray[initial.state.stateToInt()](initial);
-    if (depth == printDepth-1) std::cout << depth << " - " << moves.size() << std::endl;
+    // if (depth == printDepth-1) std::cout << moves.size() << std::endl;
     if (depth==1) return moves.size();
 
     for (auto newpos : moves) {
-        if (depth == printDepth) displayBoard(newpos);
-        counts += perft(depth-1, newpos, printDepth);
+        currCount = perft(depth-1, newpos, printDepth);
+        if (depth == printDepth) {
+            // displayBoard(newpos);
+            findMove(initial, newpos);
+            std::cout << currCount << std::endl;
+        }
+        counts += currCount;
     }
 
     return counts;
@@ -324,6 +363,7 @@ void cli(void) {
     Board board = parseFEN(initial);
     std::string input;
     while (true) {
+        std::cout << "> ";
         getline(std::cin, input);
 
         switch (input[0])
@@ -346,46 +386,46 @@ void cli(void) {
 
                     if ((board.w.occupied() & initialbit) && (~occupied & finalbit)) { // initial position is valid and final position is empty (not checked)!!
                         if (board.w.k & initialbit) {
-                            board = board.pieceMove<KING>(initialbit|finalbit);
+                            board = board.pieceMove<KING, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.q & initialbit) {
-                            board = board.pieceMove<QUEEN>(initialbit|finalbit);
+                            board = board.pieceMove<QUEEN, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.b & initialbit) {
-                            board = board.pieceMove<BISHOP>(initialbit|finalbit);
+                            board = board.pieceMove<BISHOP, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.r & initialbit) {
-                            board = board.pieceMove<ROOK>(initialbit|finalbit);
+                            board = board.pieceMove<ROOK, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.n & initialbit) {
-                            board = board.pieceMove<KNIGHT>(initialbit|finalbit);
+                            board = board.pieceMove<KNIGHT, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.p & initialbit) {
                             if ((initialbit >> 16) & finalbit) {
-                                board = board.pawnPush(initialbit, initialbit|finalbit);
+                                board = board.pawnPush<true>(initialbit, initialbit|finalbit);
                                 break;
                             }
-                            board = board.pieceMove<PAWN>(initialbit|finalbit);
+                            board = board.pieceMove<PAWN, true>(initialbit|finalbit);
                             break;
                         }
                     } else if ((board.w.occupied() & initialbit) && (board.b.occupied() & finalbit)) { // initial position is valid and final position is occupied by enemy!!
                         if (board.w.k & initialbit) {
-                            board = board.pieceMoveCapture<KING>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<KING, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.q & initialbit) {
-                            board = board.pieceMoveCapture<QUEEN>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<QUEEN, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.b & initialbit) {
-                            board = board.pieceMoveCapture<BISHOP>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<BISHOP, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.r & initialbit) {
-                            board = board.pieceMoveCapture<ROOK>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<ROOK, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.n & initialbit) {
-                            board = board.pieceMoveCapture<KNIGHT>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<KNIGHT, true>(initialbit|finalbit);
                             break;
                         } else if (board.w.p & initialbit) {
-                            board = board.pieceMoveCapture<PAWN>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<PAWN, true>(initialbit|finalbit);
                             break;
                         }
                     } 
@@ -393,46 +433,46 @@ void cli(void) {
 
                     if ((board.b.occupied() & initialbit) && (~occupied & finalbit)) { // initial position is valid and final position is empty (not checked)!!
                         if (board.b.k & initialbit) {
-                            board = board.pieceMove<KING>(initialbit|finalbit);
+                            board = board.pieceMove<KING, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.q & initialbit) {
-                            board = board.pieceMove<QUEEN>(initialbit|finalbit);
+                            board = board.pieceMove<QUEEN, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.b & initialbit) {
-                            board = board.pieceMove<BISHOP>(initialbit|finalbit);
+                            board = board.pieceMove<BISHOP, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.r & initialbit) {
-                            board = board.pieceMove<ROOK>(initialbit|finalbit);
+                            board = board.pieceMove<ROOK, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.n & initialbit) {
-                            board = board.pieceMove<KNIGHT>(initialbit|finalbit);
+                            board = board.pieceMove<KNIGHT, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.p & initialbit) {
                             if ((initialbit << 16) & finalbit) {
-                                board = board.pawnPush(initialbit, initialbit|finalbit);
+                                board = board.pawnPush<false>(initialbit, initialbit|finalbit);
                                 break;
                             }
-                            board = board.pieceMove<PAWN>(initialbit|finalbit);
+                            board = board.pieceMove<PAWN, false>(initialbit|finalbit);
                             break;
                         }
                     } else if ((board.b.occupied() & initialbit) && (board.w.occupied() & finalbit)) { // initial position is valid and final position is occupied by enemy!!
                         if (board.b.k & initialbit) {
-                            board = board.pieceMoveCapture<KING>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<KING, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.q & initialbit) {
-                            board = board.pieceMoveCapture<QUEEN>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<QUEEN, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.b & initialbit) {
-                            board = board.pieceMoveCapture<BISHOP>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<BISHOP, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.r & initialbit) {
-                            board = board.pieceMoveCapture<ROOK>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<ROOK, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.n & initialbit) {
-                            board = board.pieceMoveCapture<KNIGHT>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<KNIGHT, false>(initialbit|finalbit);
                             break;
                         } else if (board.b.p & initialbit) {
-                            board = board.pieceMoveCapture<PAWN>(initialbit|finalbit);
+                            board = board.pieceMoveCapture<PAWN, false>(initialbit|finalbit);
                             break;
                         }
                     } 
@@ -446,7 +486,15 @@ void cli(void) {
         case 'e': // eval, will be e (number)
             {   
                 int perftn = atoi(input.substr(2, input.size()-2).c_str());
-                std::cout << perft(perftn, board, perftn) << std::endl;
+                uint64_t tot = perft(perftn, board, perftn);
+                std::cout << "Total: " << tot << std::endl;
+                break;
+            }
+        case 'n': // eval, will be e (number)
+            {   
+                int perftn = atoi(input.substr(2, input.size()-2).c_str());
+                uint64_t tot = perft(perftn, board, 200);
+                std::cout << "Total: " << tot << std::endl;
                 break;
             }
         default:

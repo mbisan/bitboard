@@ -94,7 +94,7 @@ statusReport check(const Pieces &self, const Pieces &enemy) {
             Squares inbetween = (pin ^ _blsi_u64(temp)) & occNotKing;
             Squares onePieceRemoved = _blsr_u64(inbetween);
             if (!onePieceRemoved) { // i.e. the enemy bishop/queen is blocked by a single piece, then this piece is pinned
-                pinHV |= pin;
+                pinD |= pin;
             }
         }
     }
@@ -149,8 +149,8 @@ std::vector<Board> generateMoves(Board &board) {
     // king moves
     {    
         Squares kingReachable = kingMoves[res.kingIndex] & ~res.kingBan & ~res.enemySeen & notSelf;
-        BitLoop(kingReachable & notEnemy) { out.push_back(board.pieceMove<KING>(_blsi_u64(temp) | self.k)); }
-        BitLoop(kingReachable & res.enemyOcc) { out.push_back(board.pieceMoveCapture<KING>(_blsi_u64(temp) | self.k)); }
+        BitLoop(kingReachable & notEnemy) { out.push_back(board.pieceMove<KING, isWhite>(_blsi_u64(temp) | self.k)); }
+        BitLoop(kingReachable & res.enemyOcc) { out.push_back(board.pieceMoveCapture<KING, isWhite>(_blsi_u64(temp) | self.k)); }
 
         if (res.checkCount > 1) { // only king can move
             return out;
@@ -168,8 +168,8 @@ std::vector<Board> generateMoves(Board &board) {
             uint64_t pieceIndex = _tzcnt_u64(pinnedRooks);
             Squares atk = slide(rookMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<ROOK>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<ROOK>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<ROOK, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<ROOK, isWhite>(_blsi_u64(temp) | current)); }
         }
         // not pinned
         for (Squares unpinnedRooks = self.r & notpin; unpinnedRooks; unpinnedRooks = _blsr_u64(unpinnedRooks)) {
@@ -177,8 +177,8 @@ std::vector<Board> generateMoves(Board &board) {
             uint64_t pieceIndex = _tzcnt_u64(unpinnedRooks);
             Squares atk = slide(rookMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<ROOK>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<ROOK>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<ROOK, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<ROOK, isWhite>(_blsi_u64(temp) | current)); }
         }
     }
 
@@ -190,8 +190,8 @@ std::vector<Board> generateMoves(Board &board) {
             uint64_t pieceIndex = _tzcnt_u64(pinnedBishops);
             Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinD;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<BISHOP>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<BISHOP>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<BISHOP, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<BISHOP, isWhite>(_blsi_u64(temp) | current)); }
         }
         // not pinned
         for (Squares unpinnedBishops = self.b & notpin; unpinnedBishops; unpinnedBishops = _blsr_u64(unpinnedBishops)) {
@@ -199,8 +199,8 @@ std::vector<Board> generateMoves(Board &board) {
             uint64_t pieceIndex = _tzcnt_u64(unpinnedBishops);
             Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<BISHOP>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<BISHOP>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<BISHOP, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<BISHOP, isWhite>(_blsi_u64(temp) | current)); }
         }
     }
 
@@ -211,24 +211,24 @@ std::vector<Board> generateMoves(Board &board) {
             uint64_t pieceIndex = _tzcnt_u64(queensHV);
             Squares atk = slide(rookMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
         }
         for (Squares queensD = self.q & res.pinD; queensD; queensD = _blsr_u64(queensD)) {
             Squares current = _blsi_u64(queensD);
             uint64_t pieceIndex = _tzcnt_u64(queensD);
             Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
         }
         for (Squares unpinnedQueens = self.q & notpin; unpinnedQueens; unpinnedQueens = _blsr_u64(unpinnedQueens)) {
             Squares current = _blsi_u64(unpinnedQueens);
             uint64_t pieceIndex = _tzcnt_u64(unpinnedQueens);
             Squares atk = slide(rookMoves[pieceIndex], occ, pieceIndex) | slide(bishopMoves[pieceIndex], occ, pieceIndex);
             atk &= notselfCheckmask;
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
         }
     }
 
@@ -239,15 +239,15 @@ std::vector<Board> generateMoves(Board &board) {
             uint64_t pieceIndex = _tzcnt_u64(unpinnedKnight);
             Squares atk = knightMoves[pieceIndex] & notselfCheckmask;
 
-            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<KNIGHT>(_blsi_u64(temp) | current)); }
-            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<KNIGHT>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<KNIGHT, isWhite>(_blsi_u64(temp) | current)); }
+            BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<KNIGHT, isWhite>(_blsi_u64(temp) | current)); }
         }
     }
 
     // pawns
     {
         Squares pawnAdvance;
-        if constexpr (isWhite) pawnAdvance = self.p & ~wPawnLast & ~(occ >> 8);
+        if constexpr (isWhite) pawnAdvance = self.p & ~wPawnLast & ~(occ >> 8); // tirar pabajo 1 fila
         else pawnAdvance = self.p & ~bPawnLast & ~(occ << 8);
 
         Squares pawnPush;
@@ -256,11 +256,11 @@ std::vector<Board> generateMoves(Board &board) {
 
         Squares pawnCaptureL;
         if constexpr (isWhite) pawnCaptureL = self.p & ~wPawnLast & ((res.enemyOcc & notHfile) >> 7);
-        else pawnCaptureL = self.p & ~bPawnLast & ((res.enemyOcc & notHfile) << 7);
+        else pawnCaptureL = self.p & ~bPawnLast & ((res.enemyOcc & notAfile) << 7);
 
         Squares pawnCaptureR;
         if constexpr (isWhite) pawnCaptureR = self.p & ~wPawnLast & ((res.enemyOcc & notAfile) >> 9);
-        else pawnCaptureR = self.p & ~bPawnLast & ((res.enemyOcc & notAfile) << 9);
+        else pawnCaptureR = self.p & ~bPawnLast & ((res.enemyOcc & notHfile) << 9);
 
         Squares pawnAdvancePromote;
         if constexpr (isWhite) pawnAdvancePromote = self.p & wPawnLast & ~(occ >> 8);
@@ -268,61 +268,61 @@ std::vector<Board> generateMoves(Board &board) {
 
         Squares pawnCaptureLpromote;
         if constexpr (isWhite) pawnCaptureLpromote = self.p & wPawnLast & ((res.enemyOcc & notHfile) >> 7);
-        else pawnCaptureLpromote = self.p & bPawnLast & ((res.enemyOcc & notHfile) << 7);
+        else pawnCaptureLpromote = self.p & bPawnLast & ((res.enemyOcc & notAfile) << 7);
 
         Squares pawnCaptureRpromote;
         if constexpr (isWhite) pawnCaptureRpromote = self.p & wPawnLast & ((res.enemyOcc & notAfile) >> 9);
-        else pawnCaptureRpromote = self.p & bPawnLast & ((res.enemyOcc & notAfile) << 9);
+        else pawnCaptureRpromote = self.p & bPawnLast & ((res.enemyOcc & notHfile) << 9);
 
         // not pinned
         BitLoop(pawnAdvance & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;
-            if (final & notselfCheckmask) out.push_back(board.pieceMove<PAWN>(current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pieceMove<PAWN, isWhite>(current | final)); 
         }
         BitLoop(pawnPush & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 16;
             else final = current >> 16;
-            if (final & notselfCheckmask) out.push_back(board.pawnPush(current, current | final)); 
-        }
-        BitLoop(pawnCaptureL & notpin) { 
-            Squares current = _blsi_u64(temp); Squares final;
-            if constexpr (isWhite) final = current << 7;
-            else final = current >> 7;
-            if (final & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pawnPush<isWhite>(current, current | final)); 
         }
         BitLoop(pawnCaptureR & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
-            if (final & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(current | final)); 
+        }
+        BitLoop(pawnCaptureL & notpin) { 
+            Squares current = _blsi_u64(temp); Squares final;
+            if constexpr (isWhite) final = current << 7;
+            else final = current >> 7;
+            if (final & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(current | final)); 
         }
         // pinned
         BitLoop(pawnAdvance & res.pinHV) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;            
-            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pieceMove<PAWN>(current | final)); 
+            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pieceMove<PAWN, isWhite>(current | final)); 
         }
         BitLoop(pawnPush & res.pinHV) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 16;
             else final = current >> 16;
-            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pawnPush(current, current | final)); 
-        }
-        BitLoop(pawnCaptureL & res.pinD) { 
-            Squares current = _blsi_u64(temp); Squares final;
-            if constexpr (isWhite) final = current << 7;
-            else final = current >> 7;
-            if (final & res.pinD & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pawnPush<isWhite>(current, current | final)); 
         }
         BitLoop(pawnCaptureR & res.pinD) { 
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
-            if (final & res.pinD & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN>(current | final)); 
+            if (final & res.pinD & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(current | final)); 
+        }
+        BitLoop(pawnCaptureL & res.pinD) { 
+            Squares current = _blsi_u64(temp); Squares final;
+            if constexpr (isWhite) final = current << 7;
+            else final = current >> 7;
+            if (final & res.pinD & notselfCheckmask) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(current | final)); 
         }
         // not pinned promotion
         BitLoop(pawnAdvancePromote & notpin) {
@@ -330,10 +330,10 @@ std::vector<Board> generateMoves(Board &board) {
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;
             if (final & notselfCheckmask) {
-                out.push_back(board.pawnPromote<QUEEN>(current, final));
-                out.push_back(board.pawnPromote<ROOK>(current, final)); 
-                out.push_back(board.pawnPromote<BISHOP>(current, final));
-                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+                out.push_back(board.pawnPromote<QUEEN, isWhite>(current, final));
+                out.push_back(board.pawnPromote<ROOK, isWhite>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP, isWhite>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT, isWhite>(current, final));
             }
 
         }
@@ -342,10 +342,10 @@ std::vector<Board> generateMoves(Board &board) {
             if constexpr (isWhite) final = current << 7;
             else final = current >> 7;
             if (final & notselfCheckmask) {
-                out.push_back(board.pawnPromote<QUEEN>(current, final));
-                out.push_back(board.pawnPromote<ROOK>(current, final)); 
-                out.push_back(board.pawnPromote<BISHOP>(current, final));
-                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+                out.push_back(board.pawnPromote<QUEEN, isWhite>(current, final));
+                out.push_back(board.pawnPromote<ROOK, isWhite>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP, isWhite>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT, isWhite>(current, final));
             }
         }
         BitLoop(pawnCaptureRpromote & notpin) {
@@ -353,10 +353,10 @@ std::vector<Board> generateMoves(Board &board) {
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
             if (final & notselfCheckmask) {
-                out.push_back(board.pawnPromote<QUEEN>(current, final));
-                out.push_back(board.pawnPromote<ROOK>(current, final)); 
-                out.push_back(board.pawnPromote<BISHOP>(current, final));
-                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+                out.push_back(board.pawnPromote<QUEEN, isWhite>(current, final));
+                out.push_back(board.pawnPromote<ROOK, isWhite>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP, isWhite>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT, isWhite>(current, final));
             }
         }
         // pinned promotion
@@ -365,10 +365,10 @@ std::vector<Board> generateMoves(Board &board) {
             if constexpr (isWhite) final = current << 8;
             else final = current >> 8;
             if (final & res.pinHV & notselfCheckmask) {
-                out.push_back(board.pawnPromote<QUEEN>(current, final));
-                out.push_back(board.pawnPromote<ROOK>(current, final)); 
-                out.push_back(board.pawnPromote<BISHOP>(current, final));
-                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+                out.push_back(board.pawnPromote<QUEEN, isWhite>(current, final));
+                out.push_back(board.pawnPromote<ROOK, isWhite>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP, isWhite>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT, isWhite>(current, final));
             }
         }
         BitLoop(pawnCaptureLpromote & res.pinD) {
@@ -376,10 +376,10 @@ std::vector<Board> generateMoves(Board &board) {
             if constexpr (isWhite) final = current << 7;
             else final = current >> 7;
             if (final & res.pinHV & notselfCheckmask) {
-                out.push_back(board.pawnPromote<QUEEN>(current, final));
-                out.push_back(board.pawnPromote<ROOK>(current, final)); 
-                out.push_back(board.pawnPromote<BISHOP>(current, final));
-                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+                out.push_back(board.pawnPromote<QUEEN, isWhite>(current, final));
+                out.push_back(board.pawnPromote<ROOK, isWhite>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP, isWhite>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT, isWhite>(current, final));
             }
         }
         BitLoop(pawnCaptureRpromote & res.pinD) {
@@ -387,10 +387,10 @@ std::vector<Board> generateMoves(Board &board) {
             if constexpr (isWhite) final = current << 9;
             else final = current >> 9;
             if (final & res.pinD & notselfCheckmask) {
-                out.push_back(board.pawnPromote<QUEEN>(current, final));
-                out.push_back(board.pawnPromote<ROOK>(current, final)); 
-                out.push_back(board.pawnPromote<BISHOP>(current, final));
-                out.push_back(board.pawnPromote<KNIGHT>(current, final));
+                out.push_back(board.pawnPromote<QUEEN, isWhite>(current, final));
+                out.push_back(board.pawnPromote<ROOK, isWhite>(current, final)); 
+                out.push_back(board.pawnPromote<BISHOP, isWhite>(current, final));
+                out.push_back(board.pawnPromote<KNIGHT, isWhite>(current, final));
             }
         }
     }
@@ -410,16 +410,16 @@ std::vector<Board> generateMoves(Board &board) {
                 Squares pawnToTheLeft = (board.ep << 1) & self.p & ~res.epPin & ~res.pinHV;
                 
                 // if the pawn is not diagonally pinned 
-                if ((pawnToTheLeft & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheLeft | enemyPawnBehind));
-                else if ((pawnToTheLeft & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheLeft | enemyPawnBehind));
+                if ((pawnToTheLeft & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheLeft | enemyPawnBehind));
+                else if ((pawnToTheLeft & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheLeft | enemyPawnBehind));
             } else if (board.ep & notHfile) { // can capture e.p. to the right
 
                 // pawn must be to the left, not e.p. pinned and not HV pinned
                 Squares pawnToTheRight = (board.ep >> 1) & self.p & ~res.epPin & ~res.pinHV;
                 
                 // if the pawn is not diagonally pinned 
-                if ((pawnToTheRight & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheRight | enemyPawnBehind));
-                else if ((pawnToTheRight & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN>(board.ep | pawnToTheRight | enemyPawnBehind));
+                if ((pawnToTheRight & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheRight | enemyPawnBehind));
+                else if ((pawnToTheRight & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheRight | enemyPawnBehind));
             }
         }
     }
@@ -428,23 +428,23 @@ std::vector<Board> generateMoves(Board &board) {
     if constexpr (isWhite) {
         if constexpr (wL) {
             if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & wLCastleSeen)) {
-                out.push_back(board.castleL());
+                out.push_back(board.castleL<isWhite>());
             }
         }
         if constexpr (wR) {
             if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & wRCastleSeen)) {
-                out.push_back(board.castleR());
+                out.push_back(board.castleR<isWhite>());
             }
         }
     } else {
         if constexpr (bL) {
             if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & bLCastleSeen)) {
-                out.push_back(board.castleL());
+                out.push_back(board.castleL<isWhite>());
             }
         }
         if constexpr (bR) {
             if (res.checkCount == 0 && !((res.enemySeen | res.selfOcc) & bRCastleSeen)) {
-                out.push_back(board.castleR());
+                out.push_back(board.castleR<isWhite>());
             }
         }
     }
