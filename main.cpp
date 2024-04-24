@@ -286,6 +286,7 @@ uint64_t perft(int depth, Board &initial, int printDepth) {
     auto moves = functionArray[initial.state.stateToInt()](initial);
     // if (depth == printDepth-1) std::cout << moves.size() << std::endl;
     if (depth==1) return moves.size();
+    if (moves.size() == 0) std::cout << "Checkmate" << std::endl;
 
     for (auto newpos : moves) {
         currCount = perft(depth-1, newpos, printDepth);

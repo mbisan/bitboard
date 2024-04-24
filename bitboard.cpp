@@ -105,6 +105,7 @@ statusReport check(const Pieces &self, const Pieces &enemy) {
         enemySeen |= atk;
 
         if (atk & self.k) {
+            checkCount++;
             checkMask |= _blsi_u64(temp); 
         } 
     }
@@ -115,13 +116,13 @@ statusReport check(const Pieces &self, const Pieces &enemy) {
     if constexpr (isWhite) {
         atkL = (enemy.p & notAfile) >> 9;
         atkR = (enemy.p & notHfile) >> 7;
-        if (atkL & self.k) checkMask |= (self.k << 9) & enemy.p;
-        if (atkR & self.k) checkMask |= (self.k << 7) & enemy.p;
+        if (atkL & self.k) {checkMask |= (self.k << 9) & enemy.p; checkCount++;}
+        if (atkR & self.k) {checkMask |= (self.k << 7) & enemy.p; checkCount++;}
     } else {
         atkL = (enemy.p & notAfile) << 7;
         atkR = (enemy.p & notHfile) << 9;
-        if (atkL & self.k) checkMask |= (self.k >> 7) & enemy.p;
-        if (atkR & self.k) checkMask |= (self.k >> 9) & enemy.p;
+        if (atkL & self.k) {checkMask |= (self.k >> 7) & enemy.p; checkCount++;}
+        if (atkR & self.k) {checkMask |= (self.k >> 9) & enemy.p; checkCount++;}
     }
     enemySeen |= atkL | atkR;
     enemySeen |= kingMoves[_tzcnt_u64(enemy.k)];
@@ -217,7 +218,7 @@ std::vector<Board> generateMoves(Board &board) {
         for (Squares queensD = self.q & res.pinD; queensD; queensD = _blsr_u64(queensD)) {
             Squares current = _blsi_u64(queensD);
             uint64_t pieceIndex = _tzcnt_u64(queensD);
-            Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
+            Squares atk = slide(bishopMoves[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinD;
 
             BitLoop(atk & notEnemy) { out.push_back(board.pieceMove<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
             BitLoop(atk & res.enemyOcc) { out.push_back(board.pieceMoveCapture<QUEEN, isWhite>(_blsi_u64(temp) | current)); }
@@ -285,7 +286,7 @@ std::vector<Board> generateMoves(Board &board) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 16;
             else final = current >> 16;
-            if (final & notselfCheckmask) out.push_back(board.pawnPush<isWhite>(current, current | final)); 
+            if (final & notselfCheckmask) out.push_back(board.pawnPush<isWhite>(final, current | final)); 
         }
         BitLoop(pawnCaptureR & notpin) { 
             Squares current = _blsi_u64(temp); Squares final;
@@ -310,7 +311,7 @@ std::vector<Board> generateMoves(Board &board) {
             Squares current = _blsi_u64(temp); Squares final;
             if constexpr (isWhite) final = current << 16;
             else final = current >> 16;
-            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pawnPush<isWhite>(current, current | final)); 
+            if (final & res.pinHV & notselfCheckmask) out.push_back(board.pawnPush<isWhite>(final, current | final)); 
         }
         BitLoop(pawnCaptureR & res.pinD) { 
             Squares current = _blsi_u64(temp); Squares final;
@@ -400,26 +401,25 @@ std::vector<Board> generateMoves(Board &board) {
         if (board.ep & ~res.pinD) { // enemy pawn is diagonal pinned (for self), cannot remove it
 
             Squares enemyPawnBehind;
-            if constexpr (isWhite) enemyPawnBehind = board.ep >> 8;
-            else enemyPawnBehind = board.ep << 8;
+            if constexpr (isWhite) enemyPawnBehind = board.ep << 8;
+            else enemyPawnBehind = board.ep >> 8;
 
             // board.ep is the square of the enemy pawn that pushed
             if (board.ep & notAfile) { // can capture e.p. to the right
 
                 // pawn must be to the left, not e.p. pinned and not HV pinned
-                Squares pawnToTheLeft = (board.ep << 1) & self.p & ~res.epPin & ~res.pinHV;
-                
-                // if the pawn is not diagonally pinned 
-                if ((pawnToTheLeft & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheLeft | enemyPawnBehind));
-                else if ((pawnToTheLeft & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheLeft | enemyPawnBehind));
-            } else if (board.ep & notHfile) { // can capture e.p. to the right
+                Squares pawnToTheLeft = (board.ep >> 1) & self.p & ~res.epPin & ~res.pinHV;
+                // if the pawn is not diagonally pinned
+                if ((pawnToTheLeft & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pawnEP<isWhite>(board.ep, pawnToTheLeft | enemyPawnBehind));
+                else if ((pawnToTheLeft & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pawnEP<isWhite>(board.ep, pawnToTheLeft | enemyPawnBehind));
+            } 
+            if (board.ep & notHfile) { // can capture e.p. to the right
 
                 // pawn must be to the left, not e.p. pinned and not HV pinned
-                Squares pawnToTheRight = (board.ep >> 1) & self.p & ~res.epPin & ~res.pinHV;
-                
-                // if the pawn is not diagonally pinned 
-                if ((pawnToTheRight & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheRight | enemyPawnBehind));
-                else if ((pawnToTheRight & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pieceMoveCapture<PAWN, isWhite>(board.ep | pawnToTheRight | enemyPawnBehind));
+                Squares pawnToTheRight = (board.ep << 1) & self.p & ~res.epPin & ~res.pinHV;
+                // if the pawn is not diagonally pinned
+                if ((pawnToTheRight & ~res.pinD) && (enemyPawnBehind & notselfCheckmask)) out.push_back(board.pawnEP<isWhite>(board.ep, pawnToTheRight | enemyPawnBehind));
+                else if ((pawnToTheRight & res.pinD) && (enemyPawnBehind & notselfCheckmask & res.pinD)) out.push_back(board.pawnEP<isWhite>(board.ep, pawnToTheRight | enemyPawnBehind));
             }
         }
     }
