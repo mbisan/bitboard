@@ -11,12 +11,12 @@
 				"-march=native",
 				"-O3",
 				"-g",
-				"/home/mbikandi/Documents/bitboard/main.cpp",
+				"${workspaceFolder}/main.cpp",
 				"-o",
-				"/home/mbikandi/Documents/bitboard/main_test"
+				"${workspaceFolder}/main.o"
 			],
 			"options": {
-				"cwd": "/home/mbikandi/Documents/bitboard/"
+				"cwd": "${workspaceFolder}/"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -27,11 +27,11 @@
 		{
 			"type": "shell",
 			"label": "C++: run",
-			"command": "/home/mbikandi/Documents/bitboard/main_test",
+			"command": "${workspaceFolder}/main.o",
 			"args": [
 			],
 			"options": {
-				"cwd": "/home/mbikandi/Documents/bitboard/"
+				"cwd": "${workspaceFolder}/"
 			},
 			"dependsOn": "C++: g++ compile",
 			"group": "build",
@@ -47,12 +47,12 @@
 				"-march=native",
 				"-O3",
 				"-g",
-				"/home/mbikandi/Documents/bitboard/generateSliderLookup.cpp",
+				"${workspaceFolder}/generateSliderLookup.cpp",
 				"-o",
-				"/home/mbikandi/Documents/bitboard/generateSliderLookup"
+				"${workspaceFolder}/generateSliderLookup"
 			],
 			"options": {
-				"cwd": "/home/mbikandi/Documents/bitboard/"
+				"cwd": "${workspaceFolder}/"
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -63,51 +63,15 @@
 		{
 			"type": "shell",
 			"label": "run slider lookup generate",
-			"command": "/home/mbikandi/Documents/bitboard/generateSliderLookup",
+			"command": "${workspaceFolder}/generateSliderLookup",
 			"args": [
 			],
 			"options": {
-				"cwd": "/home/mbikandi/Documents/bitboard/"
+				"cwd": "${workspaceFolder}/"
 			},
 			"dependsOn": "slidergenerate",
 			"group": "build",
 			"detail": "run output"
-		},
-		{
-			"type": "cppbuild",
-			"label": "C++: g++ compile (desktop)",
-			"command": "/usr/bin/g++",
-			"args": [
-				"-fdiagnostics-color=always",
-				"-std=c++2a",
-				"-march=native",
-				"-O3",
-				"-g",
-				"/home/martin/Documents/bitboard/main.cpp",
-				"-o",
-				"/home/martin/Documents/bitboard/main_test"
-			],
-			"options": {
-				"cwd": "/home/martin/Documents/bitboard/"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": "build",
-			"detail": "compilador: /usr/bin/g++"
-		},
-		{
-			"type": "shell",
-			"label": "C++: run (Desktop)",
-			"command": "/home/martin/Documents/bitboard/main_test",
-			"args": [
-			],
-			"options": {
-				"cwd": "/home/martin/Documents/bitboard/"
-			},
-			"dependsOn": "C++: g++ compile (desktop)",
-			"group": "build",
-			"detail": "run output"
-		},
+		}
 	]
 }
