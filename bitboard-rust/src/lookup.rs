@@ -1,5 +1,23 @@
 pub mod lookup {
 
+pub const NOT_A_FILE: u64 = 0xfefefefefefefefeu64;
+pub const NOT_H_FILE: u64 = 0x7f7f7f7f7f7f7f7fu64;
+pub const W_PAWN_START: u64 = 0x000000000000ff00u64;
+pub const B_PAWN_START: u64 = 0x00ff000000000000u64;
+pub const PAWN_MIDDLE: u64 = 0x0000ffffffff0000u64;
+pub const W_PAWN_LAST: u64 = B_PAWN_START;
+pub const B_PAWN_LAST: u64 = W_PAWN_START;
+pub const W_PAWN_EP: u64 = 0x000000ff00000000u64;
+pub const B_PAWN_EP: u64 = 0x00000000ff000000u64;
+pub const W_LROOK_START: u64 = 0x0000000000000001u64;
+pub const W_RROOK_START: u64 = 0x0000000000000080u64;
+pub const B_LROOK_START: u64 = 0x0100000000000000u64;
+pub const B_RROOK_START: u64 = 0x8000000000000000u64;
+pub const W_L_CASTLE_SEEN: u64 = 0x000000000000000eu64;
+pub const W_R_CASTLE_SEEN: u64 = 0x0000000000000060u64;
+pub const B_L_CASTLE_SEEN: u64 = 0x0e00000000000000u64;
+pub const B_R_CASTLE_SEEN: u64 = 0x6000000000000000u64;
+ 
 pub const POSITION_BIT: [u64; 64] = [1u64, 1u64<<1, 1u64<<2, 1u64<<3, 1u64<<4, 1u64<<5, 1u64<<6, 1u64<<7, 
 1u64<<8, 1u64<<9, 1u64<<10, 1u64<<11, 1u64<<12, 1u64<<13, 1u64<<14, 1u64<<15, 1u64<<16, 1u64<<17, 
 1u64<<18, 1u64<<19, 1u64<<20, 1u64<<21, 1u64<<22, 1u64<<23, 1u64<<24, 1u64<<25, 1u64<<26, 1u64<<27, 
