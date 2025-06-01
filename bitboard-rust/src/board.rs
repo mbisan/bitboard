@@ -1,6 +1,30 @@
 pub mod board {
 
 use crate::lookup::lookup::{B_LROOK_START, W_LROOK_START, W_PAWN_PUSH, B_PAWN_PUSH};
+use core::arch::x86_64::_tzcnt_u64;
+
+unsafe fn tzcnt(x: u64) -> u64 {
+    unsafe { _tzcnt_u64(x) }
+}
+
+const PIECES: [&str; 13] = [
+    "♔", // 0
+    "♕", "♖", "♗", "♘", "♙", // 1–5
+    "♚", "♛", "♜", "♝", "♞", "♟", // 6–11
+    " "  // 12
+];
+
+fn displaySquare(color: bool, piece: usize) {
+    if color {
+        print!("\x1b[43m{} \x1b[0m", PIECES[piece]); // Yellow background
+    } else {
+        print!("\x1b[46m{} \x1b[0m", PIECES[piece]); // Cyan background
+    }
+}
+
+pub fn positionToSquare(position: u8) -> u64 {
+    return 1u64 << position;
+}
 
 #[derive(Copy, Clone)]
 pub struct State {
@@ -16,7 +40,7 @@ pub struct State {
          |  | 
          | 
 
-        B15B14B13B12B11B10B9 B8 -- En passant square on rows 3 and 5 of the board
+        B15B14B13B12B11B10B9 B8 -- En passant square
     */
 }
 
@@ -34,9 +58,21 @@ impl State {
     pub fn castle(&self) -> bool {
         // return true if current player can castle (either L or R)
         if self.white() {
-            return (self.state & 0b0000000000011000) > 1;
+            return (self.state & 0b0000000000011000) > 0;
         }
-        return (self.state & 0b0000000000000110) > 1;
+        return (self.state & 0b0000000000000110) > 0;
+    }
+    pub fn castleWL(&self) -> bool {
+        return (self.state & 0b0000000000001000)>0
+    }
+    pub fn castleWR(&self) -> bool {
+        return (self.state & 0b0000000000010000)>0
+    }
+    pub fn castleBL(&self) -> bool {
+        return (self.state & 0b0000000000000010)>0
+    }
+    pub fn castleBR(&self) -> bool {
+        return (self.state & 0b0000000000000100)>0
     }
     pub fn kingMove(&self) -> State {
         if self.white() {
@@ -73,6 +109,54 @@ impl State {
 }
 
 #[derive(Copy, Clone)]
+pub struct moveInfo {
+    pub currState: State, // 16 bits
+    /*
+    CastleL, CastleR, w/b -> 4 movimientos
+    en passant capture
+    promotion -> 4 tipos de pieza
+
+    three first bits:
+    0 -> normal move, i.e. no capture, no castling, no EP, no promotion, no push
+    1 -> normal capture
+    2 -> pawn push
+    3 -> castleL
+    4 -> castleR (the player is encoded in currState)
+    5 -> en passant capture -> en passant info is in currState (last 8 bits)
+    6 -> pawn promotion
+    7 -> pawn promote capture
+
+    next 3 bits:
+    type of piece captured
+    0 -> queen
+    1 -> rook
+    2 -> bishop
+    3 -> knight
+    4 -> pawn
+
+    next 2 bits:
+    type of piece when promotion/promotecapture
+    0 -> queen
+    1 -> rook
+    2 -> bishop
+    3 -> knight
+    */
+    pub moveType: u8,
+    pub movedPiece: u8,
+    /*
+    type of piece moved
+    0 -> queen
+    1 -> rook
+    2 -> bishop
+    3 -> knight
+    4 -> pawn
+    5 -> king
+    */
+    pub from: u8, // 0-63 position
+    pub to: u8 // 0-63 position
+}
+
+#[derive(Copy, Clone)]
 pub struct Pieces {
     pub k: u64,
     pub q: u64,
@@ -83,16 +167,6 @@ pub struct Pieces {
 }
 
 impl Pieces {
-    pub fn new() -> Pieces {
-        return Pieces {
-            k: 0,
-            q: 0,
-            r: 0,
-            b: 0,
-            n: 0,
-            p: 0
-        }
-    }
     pub fn white() -> Pieces {
         return Pieces {
             k: 0x0000000000000008,
@@ -125,27 +199,27 @@ impl Pieces {
 
     pub fn moveQueen(&mut self, piece_move: u64) {
         // piece_move contains initial and final positions as 1s
-        self.k = self.q ^ piece_move;
+        self.q = self.q ^ piece_move;
     }
 
     pub fn moveRook(&mut self, piece_move: u64) {
         // piece_move contains initial and final positions as 1s
-        self.k = self.r ^ piece_move;
+        self.r = self.r ^ piece_move;
     }
 
     pub fn moveBishop(&mut self, piece_move: u64) {
         // piece_move contains initial and final positions as 1s
-        self.k = self.b ^ piece_move;
+        self.b = self.b ^ piece_move;
     }
 
     pub fn moveKnight(&mut self, piece_move: u64) {
         // piece_move contains initial and final positions as 1s
-        self.k = self.n ^ piece_move;
+        self.n = self.n ^ piece_move;
     }
 
     pub fn movePawn(&mut self, piece_move: u64) {
         // piece_move contains initial and final positions as 1s
-        self.k = self.p ^ piece_move;
+        self.p = self.p ^ piece_move;
     }
 
     pub fn removePiece(&mut self, position: u64) {
@@ -167,7 +241,53 @@ impl Board {
         return Board { w: Pieces::white(), b: Pieces::black(), st: State::new() }
     }
 
-    pub fn kingMove(&mut self, piece_move: u64) {
+    pub fn displayBoard(&self) {
+        let wocc = self.w.occupied();
+        let bocc = self.b.occupied();
+
+        for row in (0..8).rev() {
+            for col in 0..8 {
+                let a = positionToSquare(8*row + col);
+                let background: bool = ((row+col)%2)==1;
+                
+                if (bocc & a)>0 { // found square occupied by white piece
+                    if (self.b.k & a)>0 { displaySquare(background, 6);}
+                    if (self.b.q & a)>0 { displaySquare(background, 7);}
+                    if (self.b.r & a)>0 { displaySquare(background, 8);}
+                    if (self.b.b & a)>0 { displaySquare(background, 9);}
+                    if (self.b.n & a)>0 { displaySquare(background, 10);}
+                    if (self.b.p & a)>0 { displaySquare(background, 11);}
+                } else if (wocc & a)>0 { // found square occupied by white piece
+                    if (self.w.k & a)>0 { displaySquare(background, 0); }
+                    if (self.w.q & a)>0 { displaySquare(background, 1); }
+                    if (self.w.r & a)>0 { displaySquare(background, 2); }
+                    if (self.w.b & a)>0 { displaySquare(background, 3); }
+                    if (self.w.n & a)>0 { displaySquare(background, 4); }
+                    if (self.w.p & a)>0 { displaySquare(background, 5); }
+                } else {
+                    displaySquare(background, 12);
+                }
+            }
+            println!("");
+        }
+        if self.st.white() {
+            print!("w - ");
+        } else {
+            print!("b - ");
+        }
+        if self.st.castleWL() { print!("Q"); }
+        if self.st.castleWR() { print!("K"); }
+        if self.st.castleBL() { print!("q"); }
+        if self.st.castleBR() { print!("k"); }
+
+        if self.st.enPassant() {
+            let inttoletter = "abcdefgh";
+            print!(" - {}", unsafe { inttoletter.chars().nth((tzcnt((self.st.state >> 8) as u64) % 8) as usize).unwrap() });
+        }
+        println!("");
+    }
+
+    fn kingMove(&mut self, piece_move: u64) {
         if self.st.white() {
             self.w.moveking(piece_move);
         } else {
@@ -176,7 +296,7 @@ impl Board {
         self.st = self.st.kingMove();
     }
 
-    pub fn kingMoveCapture(&mut self, piece_move: u64) {
+    fn kingMoveCapture(&mut self, piece_move: u64) {
         if self.st.white() {
             self.w.moveking(piece_move);
             self.b.removePiece(piece_move);
@@ -187,7 +307,7 @@ impl Board {
         self.st = self.st.kingMove();
     }
 
-    pub fn pieceMove(&mut self, piece_move: u64, piece: char) {
+    fn pieceMove(&mut self, piece_move: u64, piece: char) {
         // moves queen, bishop, knight
         if self.st.white() {
             if piece=='q' {
@@ -213,7 +333,7 @@ impl Board {
         self.st = self.st.otherMove();
     }
 
-    pub fn pieceMoveCapture(&mut self, piece_move: u64, piece: char) {
+    fn pieceMoveCapture(&mut self, piece_move: u64, piece: char) {
         // moves queen, bishop, knight
         if self.st.white() {
             if piece=='q' {
@@ -241,7 +361,7 @@ impl Board {
         self.st = self.st.otherMove();
     }
 
-    pub fn rookMove(&mut self, piece_move: u64) {
+    fn rookMove(&mut self, piece_move: u64) {
         if self.st.castle()==false {
             if self.st.white() {
                 self.w.moveRook(piece_move);
@@ -270,7 +390,7 @@ impl Board {
         }
     }
 
-    pub fn rookMoveCapture(&mut self, piece_move: u64) {
+    fn rookMoveCapture(&mut self, piece_move: u64) {
         if self.st.castle()==false {
             if self.st.white() {
                 self.w.moveRook(piece_move);
@@ -303,7 +423,7 @@ impl Board {
         }
     }
 
-    pub fn pawnPush(&mut self, piece_move: u64) {
+    fn pawnPush(&mut self, piece_move: u64) {
         if self.st.white() {
             self.w.movePawn(piece_move);
         } else {
@@ -312,7 +432,7 @@ impl Board {
         self.st = self.st.pawnPush(piece_move);
     }
 
-    pub fn pawnEP(&mut self, piece_move: u64) {
+    fn pawnEP(&mut self, piece_move: u64) {
         if self.st.white() {
             self.w.movePawn(piece_move);
             let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 32;
@@ -325,7 +445,7 @@ impl Board {
         self.st = self.st.otherMove();
     }
 
-    pub fn pawnPromote(&mut self, pawn_square: u64, end_square: u64, piece: char) {
+    fn pawnPromote(&mut self, pawn_square: u64, end_square: u64, piece: char) {
         if self.st.white() {
             if piece=='q' {
                 self.w.movePawn(pawn_square);
@@ -359,7 +479,7 @@ impl Board {
         self.st = self.st.otherMove();
     }
 
-    pub fn pawnPromoteCapture(&mut self, pawn_square: u64, end_square: u64, piece: char) {
+    fn pawnPromoteCapture(&mut self, pawn_square: u64, end_square: u64, piece: char) {
         if self.st.white() {
             if piece=='q' {
                 self.w.movePawn(pawn_square);
@@ -400,7 +520,7 @@ impl Board {
         self.st = self.st.otherMove();
     }
 
-    pub fn castleL(&mut self) {
+    fn castleL(&mut self) {
         if self.st.white() {
             self.w.moveking(0x0000000000000014u64);
             self.w.moveRook(0x0000000000000009u64);
@@ -411,7 +531,7 @@ impl Board {
         self.st.kingMove();
     }
 
-    pub fn castleR(&mut self) {
+    fn castleR(&mut self) {
         if self.st.white() {
             self.w.moveking(0x0000000000000050u64);
             self.w.moveRook(0x00000000000000a0u64);
@@ -420,6 +540,57 @@ impl Board {
             self.b.moveRook(0xa000000000000000u64);
         }
         self.st.kingMove();
+    }
+
+    pub fn applyMove(&mut self, applied_move: moveInfo) {
+
+        let moveType = applied_move.moveType & 0b00000111;
+        if moveType==0 {
+            // normal move without capture
+            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
+            let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
+            if moved_piece=='k' {
+                self.kingMove(initial_final);
+            } else if moved_piece=='r' {
+                self.rookMove(initial_final);
+            } else {
+                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+            }
+        } else if moveType==1 {
+            // normal move with capture
+            // let captured_piece = (applied_move.moveType & 0b00111000) >> 3;
+            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
+            let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
+            if moved_piece=='k' {
+                self.kingMoveCapture(initial_final);
+            } else if moved_piece=='r' {
+                self.rookMoveCapture(initial_final);
+            } else {
+                self.pieceMoveCapture(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+            }
+        } else if moveType==2 {
+            // pawn push
+            println!("Pushing pawn");
+            self.pawnPush(positionToSquare(applied_move.from) | positionToSquare(applied_move.to));
+        } else if moveType==3 {
+            // castleL
+            self.castleL();
+        } else if moveType==4 {
+            // castleR
+            self.castleR();
+        } else if moveType==5 {
+            // en passant
+            self.pawnEP(positionToSquare(applied_move.from) | positionToSquare(applied_move.to));
+        } else if moveType==6 {
+            // pawn promotion
+            let promoted_piece = "qrbn".chars().nth((applied_move.moveType >> 6) as usize).unwrap();
+            self.pawnPromote(positionToSquare(applied_move.from), positionToSquare(applied_move.to), promoted_piece);
+        } else if moveType==7 {
+            // pawn promote capture
+            let promoted_piece = "qrbn".chars().nth((applied_move.moveType >> 6) as usize).unwrap();
+            self.pawnPromoteCapture(positionToSquare(applied_move.from), positionToSquare(applied_move.to), promoted_piece);
+        }
+
     }
 }
 

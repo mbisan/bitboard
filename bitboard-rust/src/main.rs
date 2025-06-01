@@ -30,9 +30,22 @@ fn slider_reachable(sq1: u8, sq2: u8) -> u8 {
 }
 
 fn main() {
-    let board = board::board::Board::new();
+    let mut board = board::board::Board::new();
 
-    print_squares(board.b.k);
+    let piecemove = board::board::moveInfo {
+        currState: board::board::State::new(),
+        moveType: 2,
+        movedPiece: 4,
+        from: 8,
+        to: 24
+    };
 
-    println!("{}", slider_reachable(1, 19));
+    board.displayBoard();
+
+    board.applyMove(piecemove);
+
+    board.displayBoard();
+
+    print_squares(board.w.p);
+    print_squares(board.w.k);
 }
