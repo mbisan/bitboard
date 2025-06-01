@@ -46,6 +46,7 @@ fn main() {
 
     board.displayBoard();
 
-    print_squares(board.w.p);
-    print_squares(board.w.k);
+    board.undoMove(piecemove);
+
+    board.displayBoard();
 }

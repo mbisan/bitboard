@@ -445,6 +445,46 @@ impl Board {
         self.st = self.st.otherMove();
     }
 
+    fn restore_piece(&mut self, piece_position: u64, piece: char) {
+        if self.st.white() {
+            if piece=='q' {
+                self.w.moveQueen(piece_position);
+            } else if piece=='r' {
+                self.w.moveRook(piece_position);
+            } else if piece=='b' {
+                self.w.moveBishop(piece_position);
+            } else if piece=='n' {
+                self.w.moveKnight(piece_position);
+            } else if piece=='p' {
+                self.w.moveKnight(piece_position);
+            }
+        } else {
+            if piece=='q' {
+                self.b.moveQueen(piece_position);
+            } else if piece=='r' {
+                self.b.moveRook(piece_position);
+            } else if piece=='b' {
+                self.b.moveBishop(piece_position);
+            } else if piece=='n' {
+                self.b.moveKnight(piece_position);
+            } else if piece=='p' {
+                self.b.moveKnight(piece_position);
+            }
+        }
+    }
+
+    fn undoPawnEP(&mut self, piece_move: u64) {
+        if self.st.white() {
+            self.w.movePawn(piece_move);
+            let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 32;
+            self.restore_piece(removed_piece, 'p');
+        } else {
+            self.b.movePawn(piece_move);
+            let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 24;
+            self.restore_piece(removed_piece, 'p');
+        }
+    }
+
     fn pawnPromote(&mut self, pawn_square: u64, end_square: u64, piece: char) {
         if self.st.white() {
             if piece=='q' {
@@ -591,6 +631,68 @@ impl Board {
             self.pawnPromoteCapture(positionToSquare(applied_move.from), positionToSquare(applied_move.to), promoted_piece);
         }
 
+    }
+
+    pub fn undoMove(&mut self, applied_move: moveInfo) {
+        /* Here the state is already changed, the previous state is given by the applied_move.currstate */
+        self.st.state = self.st.state ^ 1; // change state to previous player so that they change pieces
+
+        let moveType = applied_move.moveType & 0b00000111;
+        if moveType==0 {
+            // normal move without capture, same as capturing piece
+            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
+            let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
+            if moved_piece=='k' {
+                self.kingMove(initial_final);
+            } else if moved_piece=='r' {
+                self.rookMove(initial_final);
+            } else {
+                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+            }
+        } else if moveType==1 {
+            // normal move with capture
+            let captured_piece = "qrbnpk".chars().nth(((applied_move.moveType & 0b00111000) >> 3) as usize).unwrap();
+            
+            // restore captured piece
+            self.restore_piece(positionToSquare(applied_move.to), captured_piece);
+
+            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
+            let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
+            if moved_piece=='k' {
+                self.kingMove(initial_final);
+            } else if moved_piece=='r' {
+                self.rookMove(initial_final);
+            } else {
+                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+            }
+        } else if moveType==2 {
+            // pawn push
+            self.pawnPush(positionToSquare(applied_move.from) | positionToSquare(applied_move.to));
+        } else if moveType==3 {
+            // castleL
+            self.castleL();
+        } else if moveType==4 {
+            // castleR
+            self.castleR();
+        } else if moveType==5 {
+            // en passant
+            self.undoPawnEP(positionToSquare(applied_move.from) | positionToSquare(applied_move.to));
+        } else if moveType==6 {
+            // pawn promotion
+            let promoted_piece = "qrbn".chars().nth((applied_move.moveType >> 6) as usize).unwrap();
+            self.pawnPromote(positionToSquare(applied_move.from), positionToSquare(applied_move.to), promoted_piece);
+        } else if moveType==7 {
+            // pawn promote capture
+
+            let captured_piece = "qrbnpk".chars().nth(((applied_move.moveType & 0b00111000) >> 3) as usize).unwrap();
+            // restore captured piece
+            self.restore_piece(positionToSquare(applied_move.to), captured_piece);
+            
+            let promoted_piece = "qrbn".chars().nth((applied_move.moveType >> 6) as usize).unwrap();
+            self.pawnPromote(positionToSquare(applied_move.from), positionToSquare(applied_move.to), promoted_piece);
+        }
+
+        self.st = applied_move.currState;
     }
 }
 
