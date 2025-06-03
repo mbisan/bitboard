@@ -132,7 +132,7 @@ pub struct StatusReport {
 }
 
 #[derive(Copy, Clone)]
-pub struct moveInfo {
+pub struct MoveInfo {
     pub currState: State, // 16 bits
     /*
     CastleL, CastleR, w/b -> 4 movimientos
@@ -165,7 +165,7 @@ pub struct moveInfo {
     3 -> knight
     */
     pub moveType: u8,
-    pub movedPiece: u8,
+    pub movedPiece: char,
     /*
     type of piece moved
     0 -> queen
@@ -252,6 +252,23 @@ impl Pieces {
         self.b = self.b & position;
         self.n = self.n & position;
         self.p = self.p & position;
+    }
+
+    pub fn pieceType(&self, position: u64) -> u8 {
+        /*
+            Bitmask for captured piece
+            0 -> queen
+            1 -> rook
+            2 -> bishop
+            3 -> knight
+            4 -> pawn
+        */
+        if (self.p&position)!=0 { return 0b00100000; }
+        if (self.r&position)!=0 { return 0b00001000; }
+        if (self.b&position)!=0 { return 0b00010000; }
+        if (self.q&position)!=0 { return 0b00000000; }
+        if (self.n&position)!=0 { return 0b00011000; }
+        return 0b00111000;
     }
 }
 
@@ -605,31 +622,29 @@ impl Board {
         self.st.kingMove();
     }
 
-    pub fn applyMove(&mut self, applied_move: moveInfo) {
+    pub fn applyMove(&mut self, applied_move: MoveInfo) {
 
         let moveType = applied_move.moveType & 0b00000111;
         if moveType==0 {
             // normal move without capture
-            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
             let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
-            if moved_piece=='k' {
+            if applied_move.movedPiece=='k' {
                 self.kingMove(initial_final);
-            } else if moved_piece=='r' {
+            } else if applied_move.movedPiece=='r' {
                 self.rookMove(initial_final);
             } else {
-                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), applied_move.movedPiece);
             }
         } else if moveType==1 {
             // normal move with capture
             // let captured_piece = (applied_move.moveType & 0b00111000) >> 3;
-            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
             let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
-            if moved_piece=='k' {
+            if applied_move.movedPiece=='k' {
                 self.kingMoveCapture(initial_final);
-            } else if moved_piece=='r' {
+            } else if applied_move.movedPiece=='r' {
                 self.rookMoveCapture(initial_final);
             } else {
-                self.pieceMoveCapture(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+                self.pieceMoveCapture(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), applied_move.movedPiece);
             }
         } else if moveType==2 {
             // pawn push
@@ -656,21 +671,20 @@ impl Board {
 
     }
 
-    pub fn undoMove(&mut self, applied_move: moveInfo) {
+    pub fn undoMove(&mut self, applied_move: MoveInfo) {
         /* Here the state is already changed, the previous state is given by the applied_move.currstate */
         self.st.state = self.st.state ^ 1; // change state to previous player so that they change pieces
 
         let moveType = applied_move.moveType & 0b00000111;
         if moveType==0 {
             // normal move without capture, same as capturing piece
-            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
             let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
-            if moved_piece=='k' {
+            if applied_move.movedPiece=='k' {
                 self.kingMove(initial_final);
-            } else if moved_piece=='r' {
+            } else if applied_move.movedPiece=='r' {
                 self.rookMove(initial_final);
             } else {
-                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), applied_move.movedPiece);
             }
         } else if moveType==1 {
             // normal move with capture
@@ -679,14 +693,13 @@ impl Board {
             // restore captured piece
             self.restore_piece(positionToSquare(applied_move.to), captured_piece);
 
-            let moved_piece = "qrbnpk".chars().nth(applied_move.movedPiece as usize).unwrap();
             let initial_final = positionToSquare(applied_move.from) | positionToSquare(applied_move.to);
-            if moved_piece=='k' {
+            if applied_move.movedPiece=='k' {
                 self.kingMove(initial_final);
-            } else if moved_piece=='r' {
+            } else if applied_move.movedPiece=='r' {
                 self.rookMove(initial_final);
             } else {
-                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), moved_piece);
+                self.pieceMove(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), applied_move.movedPiece);
             }
         } else if moveType==2 {
             // pawn push
@@ -718,7 +731,7 @@ impl Board {
         self.st = applied_move.currState;
     }
 
-    pub unsafe fn check(&self) -> StatusReport {
+    pub fn check(&self) -> StatusReport {
 
         let curr: &Pieces;
         let enemy: &Pieces;
@@ -853,6 +866,49 @@ impl Board {
             enemyOcc: enemyOcc,
             epPin: epPin
         }
+    }
+
+    pub unsafe fn generateMoves(&self) -> Vec<MoveInfo> {
+        let mut out: Vec<MoveInfo> = Vec::new();
+
+        let curr: &Pieces;
+        let enemy: &Pieces;
+        if self.st.white() {
+            curr = &self.w;
+            enemy = &self.b;
+        } else {
+            curr = &self.b;
+            enemy = &self.w;
+        }
+
+        let res: StatusReport = self.check();
+        let notEnemy = !res.enemyOcc;
+        let notSelf = !res.selfOcc;
+        let occ = res.selfOcc | res.enemyOcc;
+        let notpin = !(res.pinHV | res.pinD);
+
+        // king moves
+        {    
+            let kingReachable = KING_MOVES[res.kingIndex] & !res.kingBan & !res.enemySeen & notSelf;
+            let mut temp;
+
+            temp = kingReachable & notEnemy;
+            while temp!=0 {
+                out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'k', from: res.kingIndex as u8, to: tzcnt(temp) as u8 });
+                temp = blsr(temp);
+            }
+            temp = kingReachable & res.enemyOcc;
+            while temp!=0 {
+                out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'k', from: res.kingIndex as u8, to: tzcnt(temp) as u8 });
+                temp = blsr(temp);
+            }
+
+            if res.checkCount > 1 { // only king can move
+                return out;
+            }
+        }
+
+        return out;
     }
 
 }
