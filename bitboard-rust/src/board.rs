@@ -1,10 +1,20 @@
 pub mod board {
 
-use crate::lookup::lookup::{B_LROOK_START, W_LROOK_START, W_PAWN_PUSH, B_PAWN_PUSH};
-use core::arch::x86_64::_tzcnt_u64;
+use crate::lookup::lookup::{
+    slide, BISHOP_MOVES, B_LROOK_START, B_PAWN_PUSH, CHECK_BETWEEN, KING_MOVES, KNIGHT_MOVES, NOT_A_FILE, NOT_H_FILE, PIN_BETWEEN, ROOK_MOVES, W_LROOK_START, W_PAWN_PUSH
+};
+use core::arch::x86_64::{_tzcnt_u64, _blsr_u64, _blsi_u64};
 
-unsafe fn tzcnt(x: u64) -> u64 {
-    unsafe { _tzcnt_u64(x) }
+fn tzcnt(x: u64) -> usize {
+    unsafe { _tzcnt_u64(x) as usize }
+}
+
+fn blsr(x: u64) -> u64 {
+    unsafe { _blsr_u64(x) }
+}
+
+fn blsi(x: u64) -> u64 {
+    unsafe { _blsi_u64(x) }
 }
 
 const PIECES: [&str; 13] = [
@@ -106,6 +116,19 @@ impl State {
         let ep_position: u16 = ((piece_move & B_PAWN_PUSH) >> 24) as u16;
         return State {state: (((self.state | 0b00100000) & 0b0000000000111110) + 1) | ep_position };
     }
+}
+
+pub struct StatusReport {
+    checkCount: u64,
+    kingIndex: usize,
+    checkMask: u64,
+    kingBan: u64,
+    pinHV: u64,
+    pinD: u64,
+    enemySeen: u64,
+    selfOcc: u64,
+    enemyOcc: u64,
+    epPin: u64,
 }
 
 #[derive(Copy, Clone)]
@@ -694,6 +717,144 @@ impl Board {
 
         self.st = applied_move.currState;
     }
+
+    pub unsafe fn check(&self) -> StatusReport {
+
+        let curr: &Pieces;
+        let enemy: &Pieces;
+        if self.st.white() {
+            curr = &self.w;
+            enemy = &self.b;
+        } else {
+            curr = &self.b;
+            enemy = &self.w;
+        }
+
+        let selfOcc: u64 = curr.occupied();
+        let enemyOcc: u64 = enemy.occupied();
+        let occ: u64 = selfOcc|enemyOcc;
+
+        let occNotKing: u64 = occ & !curr.k;
+
+        let kingIndex: usize = tzcnt(curr.k);
+        let mut checkCount: u64 = 0;
+
+        let mut checkMask: u64 = 0;
+        let mut kingBan: u64 = 0;
+        let mut pinHV: u64 = 0;
+        let mut pinD: u64 = 0;
+        let mut epPin: u64 = 0;
+
+        let mut enemySeen: u64 = 0;
+
+        let mut temp: u64;
+        
+        temp = enemy.r|enemy.q;
+        while temp!=0 {
+            let pieceIndex: usize = tzcnt(temp);
+            let atk: u64 = ROOK_MOVES[pieceIndex];
+            let rookSeen: u64 = slide(atk, occ, pieceIndex);
+            enemySeen |= rookSeen;
+
+            let pin: u64 = PIN_BETWEEN[kingIndex][pieceIndex];
+
+            if (rookSeen&curr.k)!=0 {
+                checkMask |= pin;
+                kingBan |= CHECK_BETWEEN[kingIndex][pieceIndex];
+                checkCount+=1;
+            } else if (atk & curr.k)!=0 {
+                let inbetween: u64 = (pin ^ blsi(temp)) & occNotKing;
+                let onePieceRemoved = blsr(inbetween);
+                if onePieceRemoved==0 {
+                    pinHV |= pin;
+                } else if blsr(onePieceRemoved)==0 {
+                    if self.st.enPassant() && (pieceIndex/8 == kingIndex/8) {
+                        epPin = inbetween & curr.p;
+                    }
+                }
+            }
+            temp=blsr(temp);
+        }
+
+        temp = enemy.b|enemy.q;
+        while temp!=0 {
+            let pieceIndex: usize = tzcnt(temp);
+            let atk: u64 = BISHOP_MOVES[pieceIndex];
+            let bishopSeen: u64 = slide(atk, occ, pieceIndex);
+            enemySeen |= bishopSeen;
+
+            let pin: u64 = PIN_BETWEEN[kingIndex][pieceIndex];
+
+            if (bishopSeen&curr.k)!=0 {
+                checkMask |= pin;
+                kingBan |= CHECK_BETWEEN[kingIndex][pieceIndex];
+                checkCount+=1;
+            } else if (atk & curr.k)!=0 {
+                let inbetween: u64 = (pin ^ blsi(temp)) & occNotKing;
+                let onePieceRemoved: u64 = blsr(inbetween);
+                if onePieceRemoved==0 {
+                    pinD |= pin;
+                }
+            }
+            temp=blsr(temp);
+        }
+
+        temp = enemy.n;
+        while temp!=0 {
+            let pieceIndex: usize = tzcnt(temp);
+            let atk: u64 = KNIGHT_MOVES[pieceIndex];
+            enemySeen |= atk;
+
+            if (atk&curr.k)!=0 {
+                checkCount+=1;
+                checkMask |= blsi(temp);
+            }
+
+            temp=blsr(temp);
+        }
+
+        let atkL: u64;
+        let atkR: u64;
+        if self.st.white() {
+            atkL = (enemy.p & NOT_A_FILE) >> 9;
+            atkR = (enemy.p & NOT_H_FILE) >> 7;
+            if (atkL & curr.k)!=0 {
+                checkMask |= (curr.k<<9) & enemy.p;
+                checkCount+=1;
+            }
+            if (atkR & curr.k)!=0 {
+                checkMask |= (curr.k<<7) & enemy.p;
+                checkCount+=1;
+            }
+        } else {
+            atkL = (enemy.p & NOT_A_FILE) << 7;
+            atkR = (enemy.p & NOT_H_FILE) << 9;
+            if (atkL & curr.k)!=0 {
+                checkMask |= (curr.k>>7) & enemy.p;
+                checkCount+=1;
+            }
+            if (atkR & curr.k)!=0 {
+                checkMask |= (curr.k>>9) & enemy.p;
+                checkCount+=1;
+            }
+        }
+        enemySeen |= atkL | atkR;
+        enemySeen |= KING_MOVES[tzcnt(enemy.k)];
+
+        return StatusReport {
+            checkCount: checkCount,
+            kingIndex: kingIndex,
+            checkMask: checkMask,
+            kingBan: kingBan,
+            pinHV: pinHV,
+            pinD: pinD,
+            enemySeen: enemySeen,
+            selfOcc: selfOcc,
+            enemyOcc: enemyOcc,
+            epPin: epPin
+        }
+    }
+
 }
 
 
