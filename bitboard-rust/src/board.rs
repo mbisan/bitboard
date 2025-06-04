@@ -1,7 +1,7 @@
 pub mod board {
 
 use crate::lookup::lookup::{
-    slide, BISHOP_MOVES, B_LROOK_START, B_PAWN_PUSH, CHECK_BETWEEN, KING_MOVES, KNIGHT_MOVES, NOT_A_FILE, NOT_H_FILE, PIN_BETWEEN, ROOK_MOVES, W_LROOK_START, W_PAWN_PUSH
+    slide, BISHOP_MOVES, B_LROOK_START, B_L_CASTLE_SEEN, B_PAWN_LAST, B_PAWN_PUSH, B_PAWN_START, B_R_CASTLE_SEEN, CHECK_BETWEEN, KING_MOVES, KNIGHT_MOVES, NOT_A_FILE, NOT_H_FILE, PIN_BETWEEN, ROOK_MOVES, W_LROOK_START, W_L_CASTLE_SEEN, W_PAWN_LAST, W_PAWN_PUSH, W_PAWN_START, W_R_CASTLE_SEEN
 };
 use core::arch::x86_64::{_tzcnt_u64, _blsr_u64, _blsi_u64};
 
@@ -115,6 +115,14 @@ impl State {
         }
         let ep_position: u16 = ((piece_move & B_PAWN_PUSH) >> 24) as u16;
         return State {state: (((self.state | 0b00100000) & 0b0000000000111110) + 1) | ep_position };
+    }
+    pub fn epSquare(&self) -> u64 {
+        let enPassantSquare: u64 = (self.state>>8) as u64;
+        if self.white() {
+            return enPassantSquare<<32;
+        } else {
+            return enPassantSquare<<24;
+        }
     }
 }
 
@@ -322,7 +330,7 @@ impl Board {
 
         if self.st.enPassant() {
             let inttoletter = "abcdefgh";
-            print!(" - {}", unsafe { inttoletter.chars().nth((tzcnt((self.st.state >> 8) as u64) % 8) as usize).unwrap() });
+            print!(" - {}", inttoletter.chars().nth((tzcnt((self.st.state >> 8) as u64) % 8) as usize).unwrap());
         }
         println!("");
     }
@@ -648,7 +656,6 @@ impl Board {
             }
         } else if moveType==2 {
             // pawn push
-            println!("Pushing pawn");
             self.pawnPush(positionToSquare(applied_move.from) | positionToSquare(applied_move.to));
         } else if moveType==3 {
             // castleL
@@ -868,12 +875,19 @@ impl Board {
         }
     }
 
+    pub fn generateMovesSafe(&self) -> Vec<MoveInfo> {
+        return unsafe {
+            self.generateMoves()
+        }
+    }
+
     pub unsafe fn generateMoves(&self) -> Vec<MoveInfo> {
         let mut out: Vec<MoveInfo> = Vec::new();
 
         let curr: &Pieces;
         let enemy: &Pieces;
-        if self.st.white() {
+        let isWhite: bool = self.st.white();
+        if isWhite {
             curr = &self.w;
             enemy = &self.b;
         } else {
@@ -890,7 +904,7 @@ impl Board {
         // king moves
         {    
             let kingReachable = KING_MOVES[res.kingIndex] & !res.kingBan & !res.enemySeen & notSelf;
-            let mut temp;
+            let mut temp: u64;
 
             temp = kingReachable & notEnemy;
             while temp!=0 {
@@ -905,6 +919,527 @@ impl Board {
 
             if res.checkCount > 1 { // only king can move
                 return out;
+            }
+        }
+
+        let notselfCheckmask: u64 = if res.checkCount == 0 { notSelf } else { notSelf & res.checkMask };
+
+        // rook moves
+        {
+            // pinned
+            let mut pinnedRooks: u64 = curr.r & res.pinHV;
+            while pinnedRooks!=0 {
+                let pieceIndex: usize = tzcnt(pinnedRooks);
+                let atk: u64 = slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'r', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'r', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                pinnedRooks = blsr(pinnedRooks);
+            }
+            // not pinned
+            let mut unpinnedRooks: u64 = curr.r & notpin;
+            while unpinnedRooks!=0 {
+                let pieceIndex: usize = tzcnt(unpinnedRooks);
+                let atk: u64 = slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'r', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'r', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                unpinnedRooks = blsr(unpinnedRooks);
+            }
+        }
+
+        // bishop moves
+        {
+            // pinned
+            let mut pinnedBishops: u64 = curr.b & res.pinD;
+            while pinnedBishops!=0 {
+                let pieceIndex: usize = tzcnt(pinnedBishops);
+                let atk: u64 = slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinD;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'b', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'b', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                pinnedBishops = blsr(pinnedBishops);
+            }
+            // not pinned
+            let mut unpinnedBishops: u64 = curr.b & notpin;
+            while unpinnedBishops!=0 {
+                let pieceIndex: usize = tzcnt(unpinnedBishops);
+                let atk: u64 = slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'b', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'b', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                unpinnedBishops = blsr(unpinnedBishops);
+            }
+        }
+
+        // queen moves
+        {
+            // pinned HV
+            let mut queensHV: u64 = curr.b & res.pinHV;
+            while queensHV!=0 {
+                let pieceIndex: usize = tzcnt(queensHV);
+                let atk: u64 = slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'q', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'q', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                queensHV = blsr(queensHV);
+            }
+            // pinned D
+            let mut queensD: u64 = curr.b & res.pinD;
+            while queensD!=0 {
+                let pieceIndex: usize = tzcnt(queensD);
+                let atk: u64 = slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinD;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'q', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'q', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                queensD = blsr(queensD);
+            }
+            // not pinned
+            let mut unpinnedQueens: u64 = curr.b & notpin;
+            while unpinnedQueens!=0 {
+                let pieceIndex: usize = tzcnt(unpinnedQueens);
+                let atk: u64 = slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) | slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'q', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'q', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                unpinnedQueens = blsr(unpinnedQueens);
+            }
+        }
+
+        // knight moves
+        {
+            // not pinned
+            let mut unpinnedKnight: u64 = curr.b & notpin;
+            while unpinnedKnight!=0 {
+                let pieceIndex: usize = tzcnt(unpinnedKnight);
+                let atk: u64 = slide(KNIGHT_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask;
+
+                let mut temp: u64 = atk & notEnemy;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'n', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                temp = atk & res.enemyOcc;
+                while temp!=0 {
+                    out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(blsi(temp)), movedPiece: 'n', from: pieceIndex as u8, to: tzcnt(temp) as u8 });
+                    temp = blsr(temp)
+                }
+                unpinnedKnight = blsr(unpinnedKnight);
+            }
+        }
+
+        // pawns
+        {
+            let pawnAdvance: u64;
+            let pawnPush: u64;
+            let pawnCaptureL: u64;
+            let pawnCaptureR: u64;
+            let pawnAdvancePromote: u64;
+            let pawnCaptureLpromote: u64;
+            let pawnCaptureRpromote: u64;
+
+            if isWhite {
+                pawnAdvance = curr.p & !W_PAWN_LAST & !(occ >> 8);
+                pawnPush = pawnAdvance & W_PAWN_START & !(occ >> 16);
+                pawnCaptureL = curr.p & !W_PAWN_LAST & ((res.enemyOcc & NOT_H_FILE) >> 7);
+                pawnCaptureR = curr.p & !W_PAWN_LAST & ((res.enemyOcc & NOT_A_FILE) >> 9);
+                pawnAdvancePromote = curr.p & W_PAWN_LAST & !(occ >> 8);
+                pawnCaptureLpromote = curr.p & W_PAWN_LAST & ((res.enemyOcc & NOT_H_FILE) >> 7);
+                pawnCaptureRpromote = curr.p & W_PAWN_LAST & ((res.enemyOcc & NOT_A_FILE) >> 9);
+            } else {
+                pawnAdvance = curr.p & !B_PAWN_LAST & !(occ << 8);
+                pawnPush = pawnAdvance & B_PAWN_START & !(occ << 16);
+                pawnCaptureL = curr.p & !B_PAWN_LAST & ((res.enemyOcc & NOT_A_FILE) << 7);
+                pawnCaptureR = curr.p & !B_PAWN_LAST & ((res.enemyOcc & NOT_H_FILE) << 9);
+                pawnAdvancePromote = curr.p & B_PAWN_LAST & !(occ << 8);
+                pawnCaptureLpromote = curr.p & B_PAWN_LAST & ((res.enemyOcc & NOT_A_FILE) << 7);
+                pawnCaptureRpromote = curr.p & B_PAWN_LAST & ((res.enemyOcc & NOT_H_FILE) << 9);
+            }
+
+            let mut temp;
+
+            if isWhite {
+                // unpinned
+                temp = pawnAdvance & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<8;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnPush & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<16;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 2, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureR & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<9;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureL & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<7;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                // pinned
+                temp = pawnAdvance & res.pinHV;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<8;
+                    if (finalposition & res.pinHV & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnPush & res.pinHV;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<16;
+                    if (finalposition & res.pinHV & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 2, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureR & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<9;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureL & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<7;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+
+                // not pinned promotion
+                temp = pawnAdvancePromote & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<8;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureRpromote & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<9;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureLpromote & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<7;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+
+                // pinned promotion
+                temp = pawnAdvancePromote & res.pinHV;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<8;
+                    if (finalposition & res.pinHV & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureRpromote & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<9;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureLpromote & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)<<7;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+
+                // castles
+                if self.st.castleWL() {
+                    if (res.checkCount == 0) && ((res.enemySeen | occ) & W_L_CASTLE_SEEN)==0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 3, movedPiece: 'k', from: 0, to: 0 });
+                    }
+                }
+                if self.st.castleWR() {
+                    if (res.checkCount == 0) && ((res.enemySeen | occ) & W_R_CASTLE_SEEN)==0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 4, movedPiece: 'k', from: 0, to: 0 });
+                    }
+                }
+
+            } else { // pawns for black
+                // unpinned
+                temp = pawnAdvance & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>8;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnPush & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>16;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 2, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureR & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>9;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureL & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>7;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                // pinned
+                temp = pawnAdvance & res.pinHV;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>8;
+                    if (finalposition & res.pinHV & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 0, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnPush & res.pinHV;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>16;
+                    if (finalposition & res.pinHV & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 2, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureR & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>9;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureL & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>7;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
+                    }
+                    temp = blsr(temp);
+                }
+
+                // not pinned promotion
+                temp = pawnAdvancePromote & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>8;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureRpromote & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>9;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureLpromote & notpin;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>7;
+                    if (finalposition & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+
+                // pinned promotion
+                temp = pawnAdvancePromote & res.pinHV;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>8;
+                    if (finalposition & res.pinHV & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 6 | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureRpromote & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>9;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+                temp = pawnCaptureLpromote & res.pinD;
+                while temp!=0 {
+                    let finalposition: u64 = blsi(temp)>>7;
+                    if (finalposition & res.pinD & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b00000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // queen
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b01000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // rook
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b10000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // bishop
+                        out.push(MoveInfo { currState: self.st, moveType: 7 | enemy.pieceType(finalposition) | 0b11000000, movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 }); // knight
+                    }
+                    temp = blsr(temp);
+                }
+
+                // castles
+                if self.st.castleBL() {
+                    if (res.checkCount == 0) && ((res.enemySeen | occ) & B_L_CASTLE_SEEN)==0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 3, movedPiece: 'k', from: 0, to: 0 });
+                    }
+                }
+                if self.st.castleBR() {
+                    if (res.checkCount == 0) && ((res.enemySeen | occ) & B_R_CASTLE_SEEN)==0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 4, movedPiece: 'k', from: 0, to: 0 });
+                    }
+                }
+            }
+        }
+
+        if self.st.enPassant() {
+            let epSquare: u64 = self.st.epSquare();
+
+            if (epSquare & !(res.pinD))!=0 {
+                let enemyPawnBehind = if isWhite { epSquare << 8 } else { epSquare >> 8 };
+
+                if (epSquare & NOT_A_FILE)!=0 { // capture to the right
+                    let pawnToTheLeft = (epSquare>>1) & curr.p & !res.epPin & !res.pinHV;
+
+                    if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
+                    } else if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask & res.pinD)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
+                    }
+                }
+                if (epSquare & NOT_H_FILE)!=0 { // capture to the right
+                    let pawnToTheLeft = (epSquare<<1) & curr.p & !res.epPin & !res.pinHV;
+
+                    if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
+                    } else if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask & res.pinD)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
+                    }
+                }
             }
         }
 
