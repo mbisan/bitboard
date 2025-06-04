@@ -290,6 +290,7 @@ impl Pieces {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct Board {
     pub w: Pieces, pub b: Pieces, pub st: State
 }
@@ -504,7 +505,7 @@ impl Board {
     }
 
     fn restore_piece(&mut self, piece_position: u64, piece: char) {
-        if self.st.white() {
+        if !self.st.white() {
             if piece=='q' {
                 self.w.moveQueen(piece_position);
             } else if piece=='r' {
@@ -1146,11 +1147,6 @@ impl Board {
                 while temp!=0 {
                     let finalposition: u64 = blsi(temp)<<9;
                     if (finalposition & notselfCheckmask)!=0 {
-                        println!("Pawn capture");
-                        self.displayBoard();
-                        print_squares(self.w.p);
-                        print_squares(temp as u64);
-                        print_squares(finalposition as u64);
                         out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
                     }
                     temp = blsr(temp);

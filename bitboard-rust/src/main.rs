@@ -34,10 +34,8 @@ fn print_squares(squares: u64) {
 fn main() {
     let mut board = Board::new();
 
-    println!("Perft 1: {}", perft(&mut board, 1)); // prints 20
-    board.displayBoard();
-    println!("Perft 2: {}", perft(&mut board, 2)); // prints 400
-    board.displayBoard();
     println!("Perft 3: {}", perft(&mut board, 3)); // prints 1545
-    println!("Perft 4: {}", perft(&mut board, 4));
+    println!("Perft 4: {}", perft(&mut board, 4)); // ok
+    println!("Perft 5: {}", perft(&mut board, 5)); // ok
+    println!("Perft 6: {}", perft(&mut board, 6)); // 119,060,538 - 119,060,324 no lo hace bien (posibles razones: discovery check/double check)
 }
