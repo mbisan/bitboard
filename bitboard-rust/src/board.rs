@@ -5,6 +5,16 @@ use crate::lookup::lookup::{
 };
 use core::arch::x86_64::{_tzcnt_u64, _blsr_u64, _blsi_u64};
 
+fn print_squares(squares: u64) {
+    for row in (0..8).rev() {
+        for col in 0..8 {
+            print!("{}", if (squares>>(8*row+col) & 1) == 1 {"x"} else {"o"});
+        }
+        println!();
+    }
+    println!();
+}
+
 fn tzcnt(x: u64) -> usize {
     unsafe { _tzcnt_u64(x) as usize }
 }
@@ -347,10 +357,10 @@ impl Board {
     fn kingMoveCapture(&mut self, piece_move: u64) {
         if self.st.white() {
             self.w.moveking(piece_move);
-            self.b.removePiece(piece_move);
+            self.b.removePiece(!piece_move);
         } else {
             self.b.moveking(piece_move);
-            self.w.removePiece(piece_move);
+            self.w.removePiece(!piece_move);
         }
         self.st = self.st.kingMove();
     }
@@ -393,7 +403,7 @@ impl Board {
             } else if piece=='p' {
                 self.w.movePawn(piece_move);
             }
-            self.b.removePiece(piece_move);
+            self.b.removePiece(!piece_move);
         } else {
             if piece=='q' {
                 self.b.moveQueen(piece_move);
@@ -404,7 +414,7 @@ impl Board {
             } else if piece=='p' {
                 self.b.movePawn(piece_move);
             }
-            self.w.removePiece(piece_move);
+            self.w.removePiece(!piece_move);
         }
         self.st = self.st.otherMove();
     }
@@ -442,10 +452,10 @@ impl Board {
         if self.st.castle()==false {
             if self.st.white() {
                 self.w.moveRook(piece_move);
-                self.b.removePiece(piece_move);
+                self.b.removePiece(!piece_move);
             } else {
                 self.b.moveRook(piece_move);
-                self.w.removePiece(piece_move);
+                self.w.removePiece(!piece_move);
             }            
             self.st = self.st.otherMove();
         } else {
@@ -457,7 +467,7 @@ impl Board {
                     self.w.moveRook(piece_move);
                     self.st = self.st.rRookMove();
                 }
-                self.b.removePiece(piece_move);
+                self.b.removePiece(!piece_move);
             } else {
                 if (piece_move&B_LROOK_START)>0 {
                     self.b.moveRook(piece_move);
@@ -466,7 +476,7 @@ impl Board {
                     self.b.moveRook(piece_move);
                     self.st = self.st.rRookMove();
                 }
-                self.w.removePiece(piece_move);
+                self.w.removePiece(!piece_move);
             }    
         }
     }
@@ -484,11 +494,11 @@ impl Board {
         if self.st.white() {
             self.w.movePawn(piece_move);
             let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 32;
-            self.b.removePiece(removed_piece);
+            self.b.removePiece(!removed_piece);
         } else {
             self.b.movePawn(piece_move);
             let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 24;
-            self.w.removePiece(removed_piece);
+            self.w.removePiece(!removed_piece);
         }
         self.st = self.st.otherMove();
     }
@@ -504,7 +514,7 @@ impl Board {
             } else if piece=='n' {
                 self.w.moveKnight(piece_position);
             } else if piece=='p' {
-                self.w.moveKnight(piece_position);
+                self.w.movePawn(piece_position);
             }
         } else {
             if piece=='q' {
@@ -516,7 +526,7 @@ impl Board {
             } else if piece=='n' {
                 self.b.moveKnight(piece_position);
             } else if piece=='p' {
-                self.b.moveKnight(piece_position);
+                self.b.movePawn(piece_position);
             }
         }
     }
@@ -572,37 +582,37 @@ impl Board {
             if piece=='q' {
                 self.w.movePawn(pawn_square);
                 self.w.moveQueen(end_square);
-                self.b.removePiece(end_square);
+                self.b.removePiece(!end_square);
             } else if piece=='r' {
                 self.w.movePawn(pawn_square);
                 self.w.moveRook(end_square);
-                self.b.removePiece(end_square);
+                self.b.removePiece(!end_square);
             } else if piece=='b' {
                 self.w.movePawn(pawn_square);
                 self.w.moveBishop(end_square);
-                self.b.removePiece(end_square);
+                self.b.removePiece(!end_square);
             } else if piece=='n' {
                 self.w.movePawn(pawn_square);
                 self.w.moveKnight(end_square);
-                self.b.removePiece(end_square);
+                self.b.removePiece(!end_square);
             }
         } else {
             if piece=='q' {
                 self.b.movePawn(pawn_square);
                 self.b.moveQueen(end_square);
-                self.w.removePiece(end_square);
+                self.w.removePiece(!end_square);
             } else if piece=='r' {
                 self.b.movePawn(pawn_square);
                 self.b.moveRook(end_square);
-                self.w.removePiece(end_square);
+                self.w.removePiece(!end_square);
             } else if piece=='b' {
                 self.b.movePawn(pawn_square);
                 self.b.moveBishop(end_square);
-                self.w.removePiece(end_square);
+                self.w.removePiece(!end_square);
             } else if piece=='n' {
                 self.b.movePawn(pawn_square);
                 self.b.moveKnight(end_square);
-                self.w.removePiece(end_square);
+                self.w.removePiece(!end_square);
             }
         }
         self.st = self.st.otherMove();
@@ -922,7 +932,7 @@ impl Board {
             }
         }
 
-        let notselfCheckmask: u64 = if res.checkCount == 0 { notSelf } else { notSelf & res.checkMask };
+        let notselfCheckmask: u64 = if res.checkCount == 0 { notSelf & !res.checkMask } else { notSelf & res.checkMask };
 
         // rook moves
         {
@@ -1007,7 +1017,7 @@ impl Board {
         // queen moves
         {
             // pinned HV
-            let mut queensHV: u64 = curr.b & res.pinHV;
+            let mut queensHV: u64 = curr.q & res.pinHV;
             while queensHV!=0 {
                 let pieceIndex: usize = tzcnt(queensHV);
                 let atk: u64 = slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinHV;
@@ -1025,7 +1035,7 @@ impl Board {
                 queensHV = blsr(queensHV);
             }
             // pinned D
-            let mut queensD: u64 = curr.b & res.pinD;
+            let mut queensD: u64 = curr.q & res.pinD;
             while queensD!=0 {
                 let pieceIndex: usize = tzcnt(queensD);
                 let atk: u64 = slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask & res.pinD;
@@ -1043,10 +1053,10 @@ impl Board {
                 queensD = blsr(queensD);
             }
             // not pinned
-            let mut unpinnedQueens: u64 = curr.b & notpin;
+            let mut unpinnedQueens: u64 = curr.q & notpin;
             while unpinnedQueens!=0 {
                 let pieceIndex: usize = tzcnt(unpinnedQueens);
-                let atk: u64 = slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) | slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask;
+                let atk: u64 = (slide(ROOK_MOVES[pieceIndex], occ, pieceIndex) | slide(BISHOP_MOVES[pieceIndex], occ, pieceIndex)) & notselfCheckmask;
 
                 let mut temp: u64 = atk & notEnemy;
                 while temp!=0 {
@@ -1065,10 +1075,10 @@ impl Board {
         // knight moves
         {
             // not pinned
-            let mut unpinnedKnight: u64 = curr.b & notpin;
+            let mut unpinnedKnight: u64 = curr.n & notpin;
             while unpinnedKnight!=0 {
                 let pieceIndex: usize = tzcnt(unpinnedKnight);
-                let atk: u64 = slide(KNIGHT_MOVES[pieceIndex], occ, pieceIndex) & notselfCheckmask;
+                let atk: u64 = KNIGHT_MOVES[pieceIndex] & notselfCheckmask;
 
                 let mut temp: u64 = atk & notEnemy;
                 while temp!=0 {
@@ -1136,6 +1146,11 @@ impl Board {
                 while temp!=0 {
                     let finalposition: u64 = blsi(temp)<<9;
                     if (finalposition & notselfCheckmask)!=0 {
+                        println!("Pawn capture");
+                        self.displayBoard();
+                        print_squares(self.w.p);
+                        print_squares(temp as u64);
+                        print_squares(finalposition as u64);
                         out.push(MoveInfo { currState: self.st, moveType: 1 | enemy.pieceType(finalposition), movedPiece: 'p', from: tzcnt(temp) as u8, to: tzcnt(finalposition) as u8 });
                     }
                     temp = blsr(temp);
