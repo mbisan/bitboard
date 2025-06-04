@@ -1457,6 +1457,74 @@ impl Board {
         return out;
     }
 
+    pub fn from_fen(fen: &str) -> Self {
+        let mut w = Pieces { k: 0, q: 0, r: 0, b: 0, n: 0, p: 0 };
+        let mut b = Pieces { k: 0, q: 0, r: 0, b: 0, n: 0, p: 0 };
+        let mut st = State { state: 0 };
+
+        let parts: Vec<&str> = fen.split_whitespace().collect();
+        assert!(parts.len() >= 4, "Invalid FEN string");
+
+        let piece_placement = parts[0];
+        let active_color = parts[1];
+        let castling_rights = parts[2];
+        let en_passant = parts[3];
+
+        let mut row: i32 = 7;
+        let mut col: i32 = 0;
+        for c in piece_placement.chars() {
+            match c {
+                '/' => { row -= 1; col = 0},
+                '1'..='8' => {
+                    let empty = c.to_digit(10).unwrap() as i32;
+                    col += empty;
+                }
+                _ => {
+                    let bit = 1u64 << (row * 8 + col);
+                    match c {
+                        'P' => w.p |= bit,
+                        'N' => w.n |= bit,
+                        'B' => w.b |= bit,
+                        'R' => w.r |= bit,
+                        'Q' => w.q |= bit,
+                        'K' => w.k |= bit,
+                        'p' => b.p |= bit,
+                        'n' => b.n |= bit,
+                        'b' => b.b |= bit,
+                        'r' => b.r |= bit,
+                        'q' => b.q |= bit,
+                        'k' => b.k |= bit,
+                        _ => panic!("Invalid piece in FEN"),
+                    }
+                    col += 1;
+                }
+            }
+        }
+
+        print_squares(w.q);
+
+        // Side to move
+        if active_color == "w" {
+            st.state |= 1
+        }
+
+        // Castling rights
+        if castling_rights.contains('K') { st.state |= 0b00001000 }
+        if castling_rights.contains('Q') { st.state |= 0b00010000 }
+        if castling_rights.contains('k') { st.state |= 0b00010010 }
+        if castling_rights.contains('q') { st.state |= 0b00000100 }
+
+        // En passant file
+        if en_passant != "-" {
+            let file_char = en_passant.chars().next().unwrap();
+            let column_num = (file_char as u8 - b'a') as u8;
+            st.state |= (1<<column_num)<<8;
+            st.state |= 1<<5;
+        }
+
+        Board { w, b, st }
+    }
+
 }
 
 

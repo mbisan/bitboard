@@ -32,10 +32,16 @@ fn print_squares(squares: u64) {
 }
 
 fn main() {
+    let starting_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
     let mut board = Board::new();
 
-    println!("Perft 3: {}", perft(&mut board, 3)); // prints 1545
-    println!("Perft 4: {}", perft(&mut board, 4)); // ok
-    println!("Perft 5: {}", perft(&mut board, 5)); // ok
-    println!("Perft 6: {}", perft(&mut board, 6)); // 119,060,538 - 119,060,324 no lo hace bien (posibles razones: discovery check/double check)
+    let mut board2 = Board::from_fen("rnbqkbnr/ppppp1pp/8/5p1Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq f 0 1");
+
+    board2.displayBoard();
+
+    println!("Perft 3: {}", perft(&mut board, 3)); // ok
+    // println!("Perft 4: {}", perft(&mut board, 4)); // ok
+    // println!("Perft 5: {}", perft(&mut board, 5)); // ok
+    // println!("Perft 6: {}", perft(&mut board, 6)); // 119,060,538 - 119,060,324 no lo hace bien (posibles razones: discovery check/double check)
 }
