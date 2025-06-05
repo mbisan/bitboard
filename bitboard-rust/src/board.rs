@@ -494,11 +494,11 @@ impl Board {
     fn pawnEP(&mut self, piece_move: u64) {
         if self.st.white() {
             self.w.movePawn(piece_move);
-            let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 32;
+            let removed_piece: u64 = ((self.st.state as u64) >> 8) << 32;
             self.b.removePiece(!removed_piece);
         } else {
             self.b.movePawn(piece_move);
-            let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 24;
+            let removed_piece: u64 = ((self.st.state as u64) >> 8) << 24;
             self.w.removePiece(!removed_piece);
         }
         self.st = self.st.otherMove();
@@ -627,7 +627,7 @@ impl Board {
             self.b.moveking(0x1400000000000000u64);
             self.b.moveRook(0x0900000000000000u64);
         }
-        self.st.kingMove();
+        self.st = self.st.kingMove();
     }
 
     fn castleR(&mut self) {
@@ -638,7 +638,7 @@ impl Board {
             self.b.moveking(0x5000000000000000u64);
             self.b.moveRook(0xa000000000000000u64);
         }
-        self.st.kingMove();
+        self.st = self.st.kingMove();
     }
 
     pub fn applyMove(&mut self, applied_move: MoveInfo) {
@@ -1500,8 +1500,6 @@ impl Board {
                 }
             }
         }
-
-        print_squares(w.q);
 
         // Side to move
         if active_color == "w" {

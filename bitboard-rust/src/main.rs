@@ -4,6 +4,8 @@ mod board;
 mod lookup;
 use board::board::Board;
 
+use std::{io::{self, Write}, str::FromStr};
+
 fn perft(board: &mut Board, depth: u32) -> u64 {
     if depth == 0 {
         return 1;
@@ -21,27 +23,68 @@ fn perft(board: &mut Board, depth: u32) -> u64 {
     nodes
 }
 
-fn print_squares(squares: u64) {
-    for row in (0..8).rev() {
-        for col in 0..8 {
-            print!("{}", if (squares>>(8*row+col) & 1) == 1 {"x"} else {"o"});
+fn mainLoop() -> i32 {
+    let mut board = Board::new();
+
+    loop {
+        print!(">");
+        io::stdout().flush().unwrap();
+
+        let mut input = String::new();
+
+        match io::stdin().read_line(&mut input) {
+            Ok(_) => {
+                let trimmed = input.trim();
+                if trimmed.len()==0 { continue; }
+                let parts: Vec<&str> = input.split_whitespace().collect();
+                let command = parts[0];
+
+                match command {
+                    "q" => {
+                        println!("Exit...");
+                        return 0;
+                    }
+                    "fen" => {
+                        println!("Loading FEN");
+                        let fen_string: String = input.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
+                        board = Board::from_fen(&fen_string);
+                        board.displayBoard();
+                    }
+                    "display" => {
+                        board.displayBoard();
+                    }
+                    "moves" => {
+                        let moves: Vec<board::board::MoveInfo> = board.generateMovesSafe();
+                        let mut printmovesloop = String::new();
+                        for curr_move in moves {
+                            board.applyMove(curr_move);
+                            board.displayBoard();
+                            board.undoMove(curr_move);
+                            print!(">>");
+                            io::stdout().flush().unwrap();
+                            match io::stdin().read_line(&mut printmovesloop) {
+                                Ok(_) => {
+                                    match printmovesloop.trim() {
+                                        "q" => { break; }
+                                        _ => { continue;}
+                                    }
+                                }
+                                _ => { break; }
+                            }
+                        }
+                    }
+                    _ => { continue;}
+                }
+            }
+            Err(error) => {
+                eprintln!("Error reading input: {}", error);
+                return 1;
+            }
         }
-        println!();
+
     }
-    println!();
 }
 
 fn main() {
-    let starting_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-    let mut board = Board::new();
-
-    let mut board2 = Board::from_fen("rnbqkbnr/ppppp1pp/8/5p1Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq f 0 1");
-
-    board2.displayBoard();
-
-    println!("Perft 3: {}", perft(&mut board, 3)); // ok
-    // println!("Perft 4: {}", perft(&mut board, 4)); // ok
-    // println!("Perft 5: {}", perft(&mut board, 5)); // ok
-    // println!("Perft 6: {}", perft(&mut board, 6)); // 119,060,538 - 119,060,324 no lo hace bien (posibles razones: discovery check/double check)
+    mainLoop();
 }
