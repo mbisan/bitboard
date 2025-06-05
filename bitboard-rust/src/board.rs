@@ -5,15 +5,15 @@ use crate::lookup::lookup::{
 };
 use core::arch::x86_64::{_tzcnt_u64, _blsr_u64, _blsi_u64};
 
-// fn print_squares(squares: u64) {
-//     for row in (0..8).rev() {
-//         for col in 0..8 {
-//             print!("{}", if (squares>>(8*row+col) & 1) == 1 {"x"} else {"o"});
-//         }
-//         println!();
-//     }
-//     println!();
-// }
+fn print_squares(squares: u64) {
+    for row in (0..8).rev() {
+        for col in 0..8 {
+            print!("{}", if (squares>>(8*row+col) & 1) == 1 {"x"} else {"o"});
+        }
+        println!();
+    }
+    println!();
+}
 
 fn tzcnt(x: u64) -> usize {
     unsafe { _tzcnt_u64(x) as usize }
@@ -532,14 +532,14 @@ impl Board {
         }
     }
 
-    fn undoPawnEP(&mut self, piece_move: u64) {
+    fn undoPawnEP(&mut self, piece_move: u64, previous_state: State) {
         if self.st.white() {
             self.w.movePawn(piece_move);
-            let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 32;
+            let removed_piece: u64 = ((previous_state.state as u64) >> 8) << 32;
             self.restore_piece(removed_piece, 'p');
         } else {
             self.b.movePawn(piece_move);
-            let removed_piece: u64 = ((self.st.state as u64) >> 8) >> 24;
+            let removed_piece: u64 = ((previous_state.state as u64) >> 8) << 24;
             self.restore_piece(removed_piece, 'p');
         }
     }
@@ -730,7 +730,7 @@ impl Board {
             self.castleR();
         } else if moveType==5 {
             // en passant
-            self.undoPawnEP(positionToSquare(applied_move.from) | positionToSquare(applied_move.to));
+            self.undoPawnEP(positionToSquare(applied_move.from) | positionToSquare(applied_move.to), applied_move.currState);
         } else if moveType==6 {
             // pawn promotion
             let promoted_piece = "qrbn".chars().nth((applied_move.moveType >> 6) as usize).unwrap();
@@ -1440,6 +1440,8 @@ impl Board {
                         out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
                     } else if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask & res.pinD)!=0 {
                         out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
+                    } else if (pawnToTheLeft & !res.pinD)!=0 && (epSquare & notselfCheckmask)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
                     }
                 }
                 if (epSquare & NOT_H_FILE)!=0 { // capture to the right
@@ -1448,6 +1450,8 @@ impl Board {
                     if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask)!=0 {
                         out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
                     } else if (pawnToTheLeft & !res.pinD)!=0 && (enemyPawnBehind & notselfCheckmask & res.pinD)!=0 {
+                        out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
+                    } else if (pawnToTheLeft & !res.pinD)!=0 && (epSquare & notselfCheckmask)!=0 {
                         out.push(MoveInfo { currState: self.st, moveType: 5, movedPiece: 'p', from: tzcnt(pawnToTheLeft) as u8, to: tzcnt(enemyPawnBehind) as u8 });
                     }
                 }

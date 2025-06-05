@@ -5,6 +5,7 @@ mod lookup;
 use board::board::Board;
 
 use std::io::{self, Write};
+use std::time::Instant;
 
 fn perft(board: &mut Board, depth: u32) -> u64 {
     if depth == 0 {
@@ -81,11 +82,16 @@ fn mainLoop() -> i32 {
                             }
                         }
                     }
-                    "perft" => {
+                    "depth" => {
                         let number_string: String = input.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
                         match number_string.trim().parse::<i32>() {
                             Ok(num) => {
-                                println!("{}", perft(&mut board, num as u32));
+                                let count: u64;
+                                let start = Instant::now();
+                                count = perft(&mut board, num as u32);
+                                let duration = start.elapsed();
+                                println!("{}", count);
+                                println!("Time taken: {} ms", duration.as_millis());
                             },
                             _ => println!("Failed to parse number"),
                         }
