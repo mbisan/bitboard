@@ -4,7 +4,7 @@ mod board;
 mod lookup;
 use board::board::Board;
 
-use std::{io::{self, Write}, str::FromStr};
+use std::io::{self, Write};
 
 fn perft(board: &mut Board, depth: u32) -> u64 {
     if depth == 0 {
@@ -56,6 +56,14 @@ fn mainLoop() -> i32 {
                     "moves" => {
                         let moves: Vec<board::board::MoveInfo> = board.generateMovesSafe();
                         let mut printmovesloop = String::new();
+                        if moves.len()==0 {
+                            let check_mate_stalemate = board.check();
+                            if check_mate_stalemate.checkCount==0 {
+                                println!("Stalemate");
+                            } else {
+                                println!("Checkmate");
+                            }
+                        }
                         for curr_move in moves {
                             board.applyMove(curr_move);
                             board.displayBoard();
@@ -71,6 +79,15 @@ fn mainLoop() -> i32 {
                                 }
                                 _ => { break; }
                             }
+                        }
+                    }
+                    "perft" => {
+                        let number_string: String = input.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
+                        match number_string.trim().parse::<i32>() {
+                            Ok(num) => {
+                                println!("{}", perft(&mut board, num as u32));
+                            },
+                            _ => println!("Failed to parse number"),
                         }
                     }
                     _ => { continue;}

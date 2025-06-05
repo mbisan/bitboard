@@ -5,15 +5,15 @@ use crate::lookup::lookup::{
 };
 use core::arch::x86_64::{_tzcnt_u64, _blsr_u64, _blsi_u64};
 
-fn print_squares(squares: u64) {
-    for row in (0..8).rev() {
-        for col in 0..8 {
-            print!("{}", if (squares>>(8*row+col) & 1) == 1 {"x"} else {"o"});
-        }
-        println!();
-    }
-    println!();
-}
+// fn print_squares(squares: u64) {
+//     for row in (0..8).rev() {
+//         for col in 0..8 {
+//             print!("{}", if (squares>>(8*row+col) & 1) == 1 {"x"} else {"o"});
+//         }
+//         println!();
+//     }
+//     println!();
+// }
 
 fn tzcnt(x: u64) -> usize {
     unsafe { _tzcnt_u64(x) as usize }
@@ -137,7 +137,7 @@ impl State {
 }
 
 pub struct StatusReport {
-    checkCount: u64,
+    pub checkCount: u64,
     kingIndex: usize,
     checkMask: u64,
     kingBan: u64,
@@ -1507,10 +1507,10 @@ impl Board {
         }
 
         // Castling rights
-        if castling_rights.contains('K') { st.state |= 0b00001000 }
-        if castling_rights.contains('Q') { st.state |= 0b00010000 }
-        if castling_rights.contains('k') { st.state |= 0b00010010 }
-        if castling_rights.contains('q') { st.state |= 0b00000100 }
+        if castling_rights.contains('K') { st.state |= 0b00010000 }
+        if castling_rights.contains('Q') { st.state |= 0b00001000 }
+        if castling_rights.contains('k') { st.state |= 0b00000100 }
+        if castling_rights.contains('q') { st.state |= 0b00000010 }
 
         // En passant file
         if en_passant != "-" {
