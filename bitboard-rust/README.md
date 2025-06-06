@@ -26,3 +26,5 @@ https://gist.github.com/peterellisjones/8c46c28141c162d1d8a0f0badbc9cff9
    }
 ]
 ```
+
+El problema identificado es que al hacer enroque no compruebo que exista la torre.

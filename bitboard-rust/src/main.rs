@@ -7,7 +7,7 @@ use board::board::Board;
 use std::io::{self, Write};
 use std::time::Instant;
 
-fn perft(board: &mut Board, depth: u32) -> u64 {
+fn perft(board: &mut Board, depth: u32, init_depth: u32) -> u64 {
     if depth == 0 {
         return 1;
     }
@@ -17,7 +17,12 @@ fn perft(board: &mut Board, depth: u32) -> u64 {
 
     for mv in moves {
         board.applyMove(mv);
-        nodes += perft(board, depth - 1);
+        let temp = perft(board, depth - 1, init_depth);
+        if depth==init_depth {
+            board::board::printmove(mv);
+            println!("{}", temp);
+        }
+        nodes += temp;
         board.undoMove(mv);
     }
 
@@ -88,7 +93,7 @@ fn mainLoop() -> i32 {
                             Ok(num) => {
                                 let count: u64;
                                 let start = Instant::now();
-                                count = perft(&mut board, num as u32);
+                                count = perft(&mut board, num as u32, num as u32);
                                 let duration = start.elapsed();
                                 println!("{}", count);
                                 println!("Time taken: {} ms", duration.as_millis());

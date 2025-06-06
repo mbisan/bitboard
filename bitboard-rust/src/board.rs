@@ -27,6 +27,18 @@ fn blsi(x: u64) -> u64 {
     unsafe { _blsi_u64(x) }
 }
 
+pub fn printmove(move_info: MoveInfo) {
+    let from_row = move_info.from/8;
+    let from_col = move_info.from%8;
+    let to_row = move_info.to/8;
+    let to_col = move_info.to%8;
+
+    print!("{}", "abcdefgh".chars().nth(from_col as usize).unwrap());
+    print!("{}", "12345678".chars().nth(from_row as usize).unwrap());
+    print!("{}", "abcdefgh".chars().nth(to_col as usize).unwrap());
+    print!("{}: ", "12345678".chars().nth(to_row as usize).unwrap());
+}
+
 const PIECES: [&str; 13] = [
     "♔", // 0
     "♕", "♖", "♗", "♘", "♙", // 1–5
@@ -98,7 +110,7 @@ impl State {
         if self.white() {
             return State {state: self.state & 0b0000000000000110};
         }
-        return State {state: (self.state & 0b000000000001100) + 1 };
+        return State {state: (self.state & 0b000000000011000) + 1 };
     }
     pub fn otherMove(&self) -> State {
         if self.white() {
