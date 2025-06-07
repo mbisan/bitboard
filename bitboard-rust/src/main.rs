@@ -15,15 +15,25 @@ fn perft(board: &mut Board, depth: u32, init_depth: u32) -> u64 {
     let moves = board.generateMovesSafe();
     let mut nodes: u64 = 0;
 
-    for mv in moves {
-        board.applyMove(mv);
-        let temp = perft(board, depth - 1, init_depth);
-        if depth==init_depth {
+    if depth==1 {
+        return moves.len() as u64;
+    }
+
+    if depth==init_depth {
+        for mv in moves {
+            board.applyMove(mv);
+            let temp = perft(board, depth - 1, init_depth);
             board::board::printmove(mv);
             println!("{}", temp);
+            nodes += temp;
+            board.undoMove(mv);
         }
-        nodes += temp;
-        board.undoMove(mv);
+    } else {
+        for mv in moves {
+            board.applyMove(mv);
+            nodes += perft(board, depth - 1, init_depth);
+            board.undoMove(mv);
+        }
     }
 
     nodes
